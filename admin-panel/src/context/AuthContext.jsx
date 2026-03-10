@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import axios from "axios";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const AuthContext = createContext();
 
@@ -51,8 +52,8 @@ export const AuthProvider = ({ children }) => {
   const verifyToken = async (type) => {
     try {
       setLoading(true);
-
-      const res = await axios.get("/api/admin/verify");
+        
+      const res = await axios.get(`${API_BASE_URL}/api/admin/verify`);
 
       if (res.data.success) {
         setIsAuthenticated(true);
@@ -76,7 +77,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
 
-      const response = await axios.post("/api/admin/login", credentials);
+      const response = await axios.post(`${API_BASE_URL}/api/admin/login`, credentials);
 
       if (!response.data.success) {
         setLoading(false);
