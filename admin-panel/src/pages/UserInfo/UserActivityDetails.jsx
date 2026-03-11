@@ -378,128 +378,164 @@ const UserActivityDetails = () => {
       </div>
 
       {/* Summary Cards */}
-      {summary && Object.keys(summary).length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div
-            onClick={() => navigate(`/users/${userId}/posts`)}
-            className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-blue-50">
-                  <MdVideoLibrary className="text-blue-500 text-xl" />
-                </div>
-                <span className="text-gray-500 text-sm">Posts</span>
-              </div>
-              <div className="text-2xl font-bold text-black">{summary.totalPosts || 0}</div>
-              <p className="text-xs text-gray-400 mt-2">View all uploaded videos</p>
-            </div>
-            <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
-          </div>
+     {summary && (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
-          <div
-            onClick={() => navigate(`/users/${user.userid}/liked-reels`)}
-            className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-pink-50">
-                  <MdFavorite className="text-pink-500 text-xl" />
-                </div>
-                <span className="text-gray-500 text-sm">Liked Reels</span>
-              </div>
-              <div className="text-2xl font-bold text-black">{summary.totalLikedReels || 0}</div>
-              <p className="text-xs text-gray-400 mt-2">View liked reels</p>
-            </div>
-            <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    <div
+      onClick={() => navigate(`/users/${userId}/posts`)}
+      className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-blue-50">
+            <MdVideoLibrary className="text-blue-500 text-xl" />
           </div>
-
-          <div
-            onClick={() => navigate(`/users/${user.userid}/comments`)}
-            className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-yellow-50">
-                  <MdComment className="text-yellow-500 text-xl" />
-                </div>
-                <span className="text-gray-500 text-sm">Comments</span>
-              </div>
-              <div className="text-2xl font-bold text-black">{summary.totalComments || 0}</div>
-              <p className="text-xs text-gray-400 mt-2">View all user comments</p>
-            </div>
-            <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
-          </div>
-
-          <div
-            onClick={() => navigate(`/users/${user.userid}/followers`)}
-            className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-purple-50">
-                  <MdPeople className="text-purple-500 text-xl" />
-                </div>
-                <span className="text-gray-500 text-sm">Followers</span>
-              </div>
-              <div className="text-2xl font-bold text-black">{summary.totalFollowers || 0}</div>
-              <p className="text-xs text-gray-400 mt-2">View all followers</p>
-            </div>
-            <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
-          </div>
-
-          <div
-            onClick={() => navigate(`/users/${user.userid}/following`)}
-            className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-indigo-50">
-                  <MdPersonAdd className="text-indigo-500 text-xl" />
-                </div>
-                <span className="text-gray-500 text-sm">Following</span>
-              </div>
-              <div className="text-2xl font-bold text-black">{summary.totalFollowing || 0}</div>
-              <p className="text-xs text-gray-400 mt-2">View all following</p>
-            </div>
-            <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
-          </div>
-
-          <div
-            onClick={() => navigate(`/users/${user._id}/music`)}
-            className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-pink-50">
-                  <MdMusicNote className="text-pink-500 text-xl" />
-                </div>
-                <span className="text-gray-500 text-sm">Music Uploads</span>
-              </div>
-              <div className="text-2xl font-bold text-black">{summary.totalMusicUploads || 0}</div>
-              <p className="text-xs text-gray-400 mt-2">View all uploaded music</p>
-            </div>
-            <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
-          </div>
-
-          <div
-            onClick={() => navigate(`/users/${user.userid}/liked-comments`)}
-            className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-red-50">
-                  <MdFavorite className="text-red-500 text-xl" />
-                </div>
-                <span className="text-gray-500 text-sm">Liked Comments</span>
-              </div>
-              <div className="text-2xl font-bold text-black">{summary.totalLikedComments || 0}</div>
-              <p className="text-xs text-gray-400 mt-2">View all liked comments</p>
-            </div>
-            <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
-          </div>
+          <span className="text-gray-500 text-sm">Posts</span>
         </div>
-      )}
+        <div className="text-2xl font-bold text-black">
+          {summary?.totalPosts ?? 0}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          View all uploaded videos
+        </p>
+      </div>
+      <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    </div>
+
+
+    <div
+      onClick={() => navigate(`/users/${userId}/liked-reels`)}
+      className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-pink-50">
+            <MdFavorite className="text-pink-500 text-xl" />
+          </div>
+          <span className="text-gray-500 text-sm">Liked Reels</span>
+        </div>
+        <div className="text-2xl font-bold text-black">
+          {summary?.totalLikedReels ?? 0}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          View liked reels
+        </p>
+      </div>
+      <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    </div>
+
+
+    <div
+      onClick={() => navigate(`/users/${userId}/comments`)}
+      className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-yellow-50">
+            <MdComment className="text-yellow-500 text-xl" />
+          </div>
+          <span className="text-gray-500 text-sm">Comments</span>
+        </div>
+        <div className="text-2xl font-bold text-black">
+          {summary?.totalComments ?? 0}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          View all user comments
+        </p>
+      </div>
+      <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    </div>
+
+
+    <div
+      onClick={() => navigate(`/users/${userId}/followers`)}
+      className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-purple-50">
+            <MdPeople className="text-purple-500 text-xl" />
+          </div>
+          <span className="text-gray-500 text-sm">Followers</span>
+        </div>
+        <div className="text-2xl font-bold text-black">
+          {summary?.totalFollowers ?? 0}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          View all followers
+        </p>
+      </div>
+      <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    </div>
+
+
+    <div
+      onClick={() => navigate(`/users/${userId}/following`)}
+      className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-indigo-50">
+            <MdPersonAdd className="text-indigo-500 text-xl" />
+          </div>
+          <span className="text-gray-500 text-sm">Following</span>
+        </div>
+        <div className="text-2xl font-bold text-black">
+          {summary?.totalFollowing ?? 0}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          View all following
+        </p>
+      </div>
+      <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    </div>
+
+
+    <div
+      onClick={() => navigate(`/users/${userId}/music`)}
+      className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-pink-50">
+            <MdMusicNote className="text-pink-500 text-xl" />
+          </div>
+          <span className="text-gray-500 text-sm">Music Uploads</span>
+        </div>
+        <div className="text-2xl font-bold text-black">
+          {summary?.totalMusicUploads ?? 0}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          View all uploaded music
+        </p>
+      </div>
+      <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    </div>
+
+
+    <div
+      onClick={() => navigate(`/users/${userId}/liked-comments`)}
+      className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-red-50">
+            <MdFavorite className="text-red-500 text-xl" />
+          </div>
+          <span className="text-gray-500 text-sm">Liked Comments</span>
+        </div>
+        <div className="text-2xl font-bold text-black">
+          {summary?.totalLikedComments ?? 0}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          View all liked comments
+        </p>
+      </div>
+      <MdChevronRight className="text-gray-400 text-2xl flex-shrink-0" />
+    </div>
+
+  </div>
+)}
 
       {/* Filters */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4 shadow-sm">
