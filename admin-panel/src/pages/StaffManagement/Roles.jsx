@@ -251,9 +251,9 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
 import toast from "react-hot-toast";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const api = axios.create({
-  baseURL: "http://localhost:4000",
+  baseURL: `${API_BASE_URL}`,
   withCredentials: true,
 });
 
@@ -289,7 +289,7 @@ const Roles = () => {
   const fetchRoles = async () => {
   try {
     setLoading(true);
-    const res = await api.get("/api/roles");
+    const res = await api.get(`${API_BASE_URL}/api/roles`);
 
     setRoles(Array.isArray(res.data.roles) ? res.data.roles : []);
 
@@ -317,7 +317,7 @@ const Roles = () => {
 
   const deleteRole = async () => {
     try {
-      await api.delete(`/api/roles/${roleToDelete}`);
+      await api.delete(`${API_BASE_URL}/api/roles/${roleToDelete}`);
       toast.success("Role deleted successfully");
       setRoles((prev) => prev.filter((r) => r._id !== roleToDelete));
       closeDeleteModal();

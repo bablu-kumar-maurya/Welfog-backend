@@ -126,8 +126,9 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const BACKEND_URL = "http://localhost:4000";
+const BACKEND_URL = `${API_BASE_URL}`;
 
 const Navbar = () => {
   const { user, userType, logout, setUser } = useAuth();
@@ -177,7 +178,7 @@ const Navbar = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.put(
-        "/api/admin/update-profile",
+        `${API_BASE_URL}/api/admin/update-profile`,
         data,
         {
           headers: {
@@ -204,7 +205,7 @@ const Navbar = () => {
       const token = localStorage.getItem("token");
 
       await axios.put(
-        "/api/admin/remove-profile-image",
+        `${API_BASE_URL}/api/admin/remove-profile-image`,
         {},
         {
           headers: {

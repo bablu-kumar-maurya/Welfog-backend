@@ -293,6 +293,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdSearch,
   MdDelete,
@@ -335,7 +336,7 @@ const fetchComments = async () => {
 
     const { search, startDate, endDate } = filters;
 
-    const res = await axios.get(`/api/comment/admin-view`, {
+    const res = await axios.get(`${API_BASE_URL}/api/comment/admin-view`, {
       params: {
         page,
         limit: LIMIT,
@@ -359,7 +360,7 @@ const handleDelete = async (comment) => {
   try {
     const userId = comment.user?._id;
 
-    await axios.delete(`/api/comment/admin_comment/delete/${comment._id}/${userId}`);
+    await axios.delete(`${API_BASE_URL}/api/comment/admin_comment/delete/${comment._id}/${userId}`);
 
     toast.success("Comment deleted");
 
@@ -386,7 +387,7 @@ const handleDelete = async (comment) => {
   const handleViewReel = async (reelId) => {
     try {
       setReelLoading(true);
-      const res = await axios.get(`/api/reels/current/${reelId}`);
+      const res = await axios.get(`${API_BASE_URL}/api/reels/current/${reelId}`);
       setSelectedReel(res.data);
       setShowReelModal(true);
     } catch {

@@ -227,7 +227,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { MdArrowBack, MdFavorite } from "react-icons/md";
 import toast from "react-hot-toast";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const LIMIT = 10;
 
 const UserLikedComments = () => {
@@ -256,7 +256,7 @@ const UserLikedComments = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `/api/comment/admin/users/${userId}/liked-comments`
+        `${API_BASE_URL}/api/comment/admin/users/${userId}/liked-comments`
       );
 
       const list = res.data.comments || [];
@@ -293,7 +293,7 @@ const UserLikedComments = () => {
     try {
       setReelLoading(true);
 
-      const res = await axios.get(`/api/reels/current/${reelId}`);
+      const res = await axios.get(`${API_BASE_URL}/api/reels/current/${reelId}`);
 
       setSelectedReel(res.data);
       setShowReelModal(true);

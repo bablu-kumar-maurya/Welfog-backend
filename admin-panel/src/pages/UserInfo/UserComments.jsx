@@ -207,7 +207,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { MdArrowBack, MdComment } from "react-icons/md";
 import toast from "react-hot-toast";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const UserComments = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -248,7 +248,7 @@ const UserComments = () => {
       }
 
       const res = await axios.get(
-        `/api/comment/user/${userId}`,
+        `${API_BASE_URL}/api/comment/user/${userId}`,
         {
           params: {
             page,
@@ -278,7 +278,7 @@ const UserComments = () => {
   const handleViewReel = async (reelId) => {
     try {
       setReelLoading(true);
-      const res = await axios.get(`/api/reels/current/${reelId}`);
+      const res = await axios.get(`${API_BASE_URL}/api/reels/current/${reelId}`);
       setSelectedReel(res.data);
       setShowReelModal(true);
     } catch (err) {

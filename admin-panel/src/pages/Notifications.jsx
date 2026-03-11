@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdSearch,
   MdNotifications,
@@ -31,7 +32,7 @@ const Notifications = () => {
 
       const { search, type, startDate, endDate } = filters;
 
-      const res = await axios.get('/api/notifications/admin_notifications', {
+      const res = await axios.get(`${API_BASE_URL}/api/notifications/admin_notifications`, {
         params: {
           page,
           limit,

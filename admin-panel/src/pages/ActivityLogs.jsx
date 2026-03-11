@@ -91,7 +91,7 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +126,7 @@ const ActivityLogs = () => {
     try {
       const { action, targetType, search, startDate, endDate } = filters;
       const res = await axios.get(
-        `/api/admin/activity-logs?page=${currentPage}&limit=20&action=${action}&targetType=${targetType}&search=${search}&startDate=${startDate}&endDate=${endDate}`
+        `${API_BASE_URL}/api/admin/activity-logs?page=${currentPage}&limit=20&action=${action}&targetType=${targetType}&search=${search}&startDate=${startDate}&endDate=${endDate}`
       );
       
       setLogs(res.data.logs || []);

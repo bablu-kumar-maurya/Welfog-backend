@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { MdSettings, MdSave, MdLock } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import axios from "axios";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const Settings = () => {
   const [settings, setSettings] = useState({
     siteName: '',
@@ -23,7 +23,7 @@ const Settings = () => {
     const fetchSettings = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("/api/admin/verify", {
+        const response = await axios.get(`${API_BASE_URL}/api/admin/verify`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -58,7 +58,7 @@ const Settings = () => {
       }
 
       await axios.put(
-        "/api/admin/settings", 
+        `${API_BASE_URL}/api/admin/settings`, 
         settings,
         {
           headers: {
@@ -85,7 +85,7 @@ const Settings = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "/api/admin/change-password",
+        `${API_BASE_URL}/api/admin/change-password`,
         {
           currentPassword: passwordChange.currentPassword,
           newPassword: passwordChange.newPassword,

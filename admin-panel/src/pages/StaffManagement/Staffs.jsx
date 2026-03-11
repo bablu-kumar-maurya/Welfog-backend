@@ -267,7 +267,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const Staffs = () => {
   const navigate = useNavigate();
   const topRef = useRef(null);
@@ -289,7 +289,7 @@ const Staffs = () => {
   // ================= FETCH STAFFS =================
  const fetchStaffs = async () => {
   try {
-    const res = await axios.get("/api/roles/staffs/all", {
+    const res = await axios.get(`${API_BASE_URL}/api/roles/staffs/all`, {
       params: {
         page,
         limit,
@@ -317,7 +317,7 @@ const Staffs = () => {
 
     try {
       setDeleting(true);
-      await axios.delete(`/api/roles/staffs/${staffToDelete._id}`);
+      await axios.delete(`${API_BASE_URL}/api/roles/staffs/${staffToDelete._id}`);
 
       toast.success("Staff deleted successfully");
       setStaffs((prev) =>

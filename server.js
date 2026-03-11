@@ -10,10 +10,24 @@ const checkMaintenance = require("./middleware/checkMaintenance");
 // 🔥 VERY IMPORTANT: Put this BEFORE all routes
 app.use(checkMaintenance);
 // ✅ Use CORS before routes
+const allowedOrigins = [
+  "http://localhost:5173", // local Vite dev
+  "http://localhost:3000", // local React dev
+  "https://welfog-backend.vercel.app" // production frontend
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN || 'http://localhost:3000',
-  // origin: "*",
-  credentials: true,
+  origin: function (origin, callback) {
+    // allow requests with no origin (mobile apps / curl)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("CORS not allowed"));
+    }
+  },
+  credentials: true
 }));
 
 app.use(bodyParser.json());

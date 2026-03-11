@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdSearch,
   MdVisibility,
@@ -52,7 +52,7 @@ const Users = () => {
 
       const { search, status, startDate, endDate } = filters;
 
-      const response = await axios.get('/api/users/admin_users', {
+      const response = await axios.get(`${API_BASE_URL}/api/users/admin_users`, {
         params: {
           page,
           limit,
@@ -74,7 +74,7 @@ const Users = () => {
 
   const handleSuspendToggle = async (userId, currentStatus) => {
     try {
-      await axios.put(`/api/users/admin_users/${userId}`, {
+      await axios.put(`${API_BASE_URL}/api/users/admin_users/${userId}`, {
         isSuspended: !currentStatus,
       });
 
@@ -94,7 +94,7 @@ const Users = () => {
   // NEW: Delete User Function
   const handleDeleteUser = async (userId) => {
     try {
-      await axios.delete(`/api/users/admin_users/${userId}`);
+      await axios.delete(`${API_BASE_URL}/api/users/admin_users/${userId}`);
 
       toast.success('User and all related data deleted successfully');
 

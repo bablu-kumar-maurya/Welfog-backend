@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdArrowBack,
   MdPlayArrow,
@@ -48,7 +49,7 @@ const UserLikedReels = () => {
       // Only show loading overlay on first page load to prevent blinking on page change
       setLoading(pageNo === 1);
       const res = await axios.get(
-        `/api/reels/admin/users/${userId}/liked-reels`,
+        `${API_BASE_URL}/api/reels/admin/users/${userId}/liked-reels`,
         {
           params: {
             page: pageNo,
@@ -98,7 +99,7 @@ const UserLikedReels = () => {
   const handleBlockReel = async (reel) => {
     try {
       const action = reel.status === "Blocked" ? "unblock" : "block";
-      await axios.put(`/api/reels/block/${reel._id}`, {
+      await axios.put(`${API_BASE_URL}/api/reels/block/${reel._id}`, {
         action,
         reason: action === "block" ? "Admin blocked this reel" : null,
       });
@@ -120,7 +121,7 @@ const UserLikedReels = () => {
  const handleDeleteReel = async (reel) => {
   try {
     await axios.delete(
-      `/api/reels/delete/${reel._id}/${reel.userid}`
+      `${API_BASE_URL}/api/reels/delete/${reel._id}/${reel.userid}`
     );
 
     toast.success("Reel deleted");

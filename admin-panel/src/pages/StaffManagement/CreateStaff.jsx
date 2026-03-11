@@ -190,10 +190,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { MdArrowBack } from "react-icons/md";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // 🛠️ Axios Instance setup (Taaki token hamesha jaye, chahe file kahin bhi ho)
 const api = axios.create({
-  baseURL: "http://localhost:4000", // Apna backend URL check kar lein
+  baseURL: `${API_BASE_URL}`, // Apna backend URL check kar lein
   withCredentials: true,
 });
 
@@ -225,7 +225,7 @@ const CreateStaff = () => {
   // ================= FETCH ROLES =================
   const fetchRoles = async () => {
     try {
-      const res = await api.get("/api/roles"); // axios ki jagah api use kiya
+      const res = await api.get(`${API_BASE_URL}/api/roles`); // axios ki jagah api use kiya
       setRoles(res.data.roles || []);
     } catch {
       toast.error("Failed to load roles");
@@ -237,7 +237,7 @@ const CreateStaff = () => {
     if (!isEdit) return;
 
     try {
-      const res = await api.get(`/api/roles/staffs/${id}`); // axios ki jagah api use kiya
+      const res = await api.get(`${API_BASE_URL}/api/roles/staffs/${id}`); // axios ki jagah api use kiya
       const s = res.data;
 
       setForm({
@@ -269,7 +269,7 @@ const CreateStaff = () => {
       setLoading(true);
 
       if (isEdit) {
-        await api.put(`/api/roles/staffs/${id}`, {
+        await api.put(`${API_BASE_URL}/api/roles/staffs/${id}`, {
           name: form.name,
           email: form.email,
           phone: form.phone,
@@ -281,7 +281,7 @@ const CreateStaff = () => {
           toast.error("Password is required");
           return;
         }
-        await api.post("/api/roles/staffs/create", form);
+        await api.post(`${API_BASE_URL}/api/roles/staffs/create`, form);
         toast.success("Staff created successfully");
       }
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
 import { useNavigate } from 'react-router-dom';
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdPeople,
   MdVideoLibrary,
@@ -56,12 +56,12 @@ const Dashboard = () => {
     try {
       // Fetch dashboard data from backend
       const results = await Promise.allSettled([
-        axios.get("/api/users"),
-        axios.get("/api/reels"),
-        axios.get("/api/music"),
-        axios.get("/api/comment"),
-        axios.get("/api/reels/totallikes"),
-        axios.get("/api/reels/totalviews"),
+        axios.get(`${API_BASE_URL}/api/users`),
+        axios.get(`${API_BASE_URL}/api/reels`),
+        axios.get(`${API_BASE_URL}/api/music`),
+        axios.get(`${API_BASE_URL}/api/comment`),
+        axios.get(`${API_BASE_URL}/api/reels/totallikes`),
+        axios.get(`${API_BASE_URL}/api/reels/totalviews`),
       ]);
 
       const [

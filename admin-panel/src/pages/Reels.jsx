@@ -743,6 +743,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdSearch,
   MdDelete,
@@ -887,7 +888,7 @@ const Reels = () => {
     try {
       setLoading(true);
       const params = { page: pageNumber, limit, search, status, startDate, endDate };
-      const res = await axios.get('/api/reels/admin_reels', { params, signal });
+      const res = await axios.get(`${API_BASE_URL}/api/reels/admin_reels`, { params, signal });
       setReels(Array.isArray(res.data.data) ? res.data.data : []);
       setTotalReels(res.data.total || 0);
     } catch (err) {
@@ -903,7 +904,7 @@ const Reels = () => {
     try {
       const action = reel.status === "Blocked" ? "unblock" : "block";
 
-      await axios.put(`/api/reels/admin_block/${reel._id}`, {
+      await axios.put(`${API_BASE_URL}/api/reels/admin_block/${reel._id}`, {
         action
       });
 
@@ -973,7 +974,7 @@ const Reels = () => {
   const handleDelete = async (reel) => {
     try {
       await axios.delete(
-        `/api/reels/admin_delete/${reel._id}/${reel.userid}`
+        `${API_BASE_URL}/api/reels/admin_delete/${reel._id}/${reel.userid}`
       );
 
       toast.success("Reel deleted successfully");

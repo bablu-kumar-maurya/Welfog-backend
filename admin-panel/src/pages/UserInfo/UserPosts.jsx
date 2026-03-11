@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
     MdArrowBack,
     MdPlayArrow,
@@ -61,7 +62,7 @@ const [endDate, setEndDate] = useState("");
         try {
             const action = reel.status === "Blocked" ? "unblock" : "block";
 
-            await axios.put(`/api/reels/block/${reel._id}`, {
+            await axios.put(`${API_BASE_URL}/api/reels/block/${reel._id}`, {
                 action,
                 reason: action === "block" ? "Admin blocked this reel" : null,
             });
@@ -90,7 +91,7 @@ const [endDate, setEndDate] = useState("");
 
    const handleDeleteReel = async (reelId) => {
     try {
-        await axios.delete(`/api/reels/delete/${reelId}`);
+        await axios.delete(`${API_BASE_URL}/api/reels/delete/${reelId}`);
         toast.success("Reel deleted");
         setReels((prev) => prev.filter((r) => r._id !== reelId));
     } catch {
@@ -113,7 +114,7 @@ const [endDate, setEndDate] = useState("");
         try {
             setLoading(true);
 
-            const res = await axios.get(`/api/users/userpost/${id}`, {
+            const res = await axios.get(`${API_BASE_URL}/api/users/userpost/${id}`, {
                 params: { limit: LIMIT, skip: skipValue ,startDate, endDate},
             });
 
