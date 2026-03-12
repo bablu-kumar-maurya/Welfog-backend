@@ -404,7 +404,7 @@ const UserActivityDetails = () => {
 
 
     <div
-      onClick={() => navigate(`/users/${userId}/liked-reels`)}
+      onClick={() => navigate(`/users/${user.userid}/liked-reels`)}
       className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
     >
       <div>
@@ -426,7 +426,7 @@ const UserActivityDetails = () => {
 
 
     <div
-      onClick={() => navigate(`/users/${userId}/comments`)}
+      onClick={() => navigate(`/users/${user.userid}/comments`)}
       className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
     >
       <div>
@@ -448,7 +448,7 @@ const UserActivityDetails = () => {
 
 
     <div
-      onClick={() => navigate(`/users/${userId}/followers`)}
+      onClick={() => navigate(`/users/${user.userid}/followers`)}
       className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
     >
       <div>
@@ -470,7 +470,7 @@ const UserActivityDetails = () => {
 
 
     <div
-      onClick={() => navigate(`/users/${userId}/following`)}
+      onClick={() => navigate(`/users/${user.userid}/following`)}
       className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
     >
       <div>
@@ -514,7 +514,7 @@ const UserActivityDetails = () => {
 
 
     <div
-      onClick={() => navigate(`/users/${userId}/liked-comments`)}
+      onClick={() => navigate(`/users/${user.userid}/liked-comments`)}
       className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 transition flex items-center justify-between shadow-sm"
     >
       <div>
