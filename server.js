@@ -65,6 +65,7 @@ app.use("/api/comment", commentRoute);
 app.use("/api/notifications", notificationRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/roles", roleRoutes);
+
 app.get("/", (req, res) => {
   res.json({
     message: "Welcome to Neo Reels Backend API! Date 12th nov 2025",

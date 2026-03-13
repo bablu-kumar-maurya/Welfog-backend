@@ -21,7 +21,7 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const createNotification = require("../utils/createNotification");
-
+const logError = require("../utils/logError");
 
 // ---------- Adaptive compressor (paste after ffmpeg.setFfmpegPath(...)) ----------
 async function compressVideo(inputPath, outputPath) {
@@ -301,6 +301,8 @@ ${variant.name}/index.m3u8`
         });
     } catch (err) {
         await Reel.findByIdAndUpdate(reelId, { status: "Processing" });
+          err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         console.error("MP4->HLS migration failed:", err);
     } finally {
         tempFiles.forEach((t) => { try { if (t) t.removeCallback(); } catch (e) { } });
@@ -372,6 +374,8 @@ async function processReelUpload(jobData) {
             console.log(`   Original size  : ${originalSize} MB`);
             console.log(`   Compressed size: ${compressedSize} MB`);
         } catch (e) {
+            e.statusCode = e.statusCode || 500;
+            await logError(req, e);
             console.warn("Could not stat files for logging:", e.message);
         }
 
@@ -449,6 +453,8 @@ async function processReelUpload(jobData) {
 
             } catch (e) {
                 console.warn("[WARNING] External audio failed:", e.message);
+                e.statusCode = e.statusCode || 500;
+                await logError(req, e);
                 audioInputPath = null;
                 finalMusicId = musicId || null;
             }
@@ -590,6 +596,8 @@ async function processReelUpload(jobData) {
                 console.log(`[STEP 4.5] Short link generated and saved: ${shortLink}`);
             }
         } catch (shortLinkError) {
+            shortLinkError.statusCode = shortLinkError.statusCode || 500;
+            await logError(req, shortLinkError);
             console.warn("[WARNING] Failed to generate short link (non-blocking):", shortLinkError.message);
         }
 
@@ -834,6 +842,8 @@ ${variant.name}/index.m3u8`
             console.log("[STEP 7] Uploaded master.m3u8 and all variants to S3");
         } catch (uploadErr) {
             console.error("[STEP 7] Error uploading HLS files to S3:", uploadErr);
+             uploadErr.statusCode = uploadErr.statusCode || 500;
+            await logError(req, uploadErr);
             throw uploadErr; // rethrow to trigger outer catch & mark reel as failed
         }
 
@@ -849,6 +859,8 @@ ${variant.name}/index.m3u8`
     } catch (err) {
         console.error("===== [WORKER: FULL UPLOAD ERROR] =====");
         console.error(err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         if (newReelId) {
             await Reel.findByIdAndUpdate(newReelId, { status: 'failed', error: err.message });
         }
@@ -906,6 +918,7 @@ router.post(
                 try {
                     parsedAudioData = JSON.parse(audioData);
                 } catch (e) {
+                    await logError(req, e);
                     console.error("Error parsing audioData:", e);
                 }
             }
@@ -994,6 +1007,8 @@ router.post(
         } catch (err) {
             console.error("===== [FULL UPLOAD API ERROR] =====");
             console.error(err);
+            err.statusCode = err.statusCode || 500;
+            await logError(req, err);
             res.status(500).json({
                 success: false,
                 message: "Server error during reel upload initiation.",
@@ -1062,6 +1077,8 @@ router.post("/", upload.single("file"), async (req, res) => {
 
     } catch (error) {
         console.error("Error on file upload:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({
             message: "Error on file upload!",
             success: false
@@ -1141,6 +1158,8 @@ router.post("/upload", async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: "An Error occure in Upload Reel!" });
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         console.log("Error in upload reel", error);
     }
 });
@@ -1181,6 +1200,8 @@ router.get("/by-music/:id", async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching reels by music:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         return res.status(500).json({
             message: "Error fetching reels",
             error: error.message
@@ -1252,6 +1273,8 @@ router.get(
 
     } catch (error) {
       console.error("Error fetching reels:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({
         message: "Error fetching reels",
       });
@@ -1323,6 +1346,8 @@ router.get(
 
     } catch (error) {
       console.error("Error fetching reels:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({
         message: "Error fetching reels",
       });
@@ -1347,6 +1372,8 @@ router.get("/show", async (req, res) => {
         return res.status(200).json({ reels });
     } catch (error) {
         console.error("Error fetching reels:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         return res.status(500).json({ message: "Error fetching reels" });
     }
 });
@@ -1401,6 +1428,8 @@ router.get("/show", async (req, res) => {
 //         res.json({ reels: reelsWithFollow, direction });
 //     } catch (e) {
 //         console.error("Error fetching reels:", e);
+// e.statusCode = e.statusCode || 500;
+// await logError(req, e);
 //         res.status(500).json({ message: "Error fetching reels" });
 //     }
 // });
@@ -1463,6 +1492,8 @@ router.get("/shownew", async (req, res) => {
         res.json({ reels: reelsWithFollow, direction });
     } catch (e) {
         console.error("Error fetching reels:", e);
+        e.statusCode = e.statusCode || 500;
+        await logError(req, e);
         res.status(500).json({ message: "Error fetching reels" });
     }
 });
@@ -1509,6 +1540,8 @@ router.post("/view", async (req, res) => {
         });
     } catch (error) {
         console.error("Error incrementing reel view:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Error incrementing reel view" });
     }
 });
@@ -1571,6 +1604,8 @@ router.get("/current/:id", async (req, res) => {
 
     } catch (error) {
         console.error("Error in /current/:id →", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -1669,6 +1704,8 @@ router.get("/others/:userId", async (req, res) => {
 
     } catch (error) {
         console.error(error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -1734,6 +1771,8 @@ router.delete("/delete/:reelId/:userid", async (req, res) => {
 
         } catch (error) {
             console.error("Delete reel error:", error);
+            error.statusCode = error.statusCode || 500;
+            await logError(req, error);
             return res.status(500).json({ message: "Error deleting reel" });
         }
     });
@@ -1796,7 +1835,9 @@ router.delete("/admin_delete/:reelId/:userid",adminAuth,
             });
 
         } catch (error) {
+            error.statusCode = error.statusCode || 500;
             console.error("Delete reel error:", error);
+            await logError(req, error);
             return res.status(500).json({ message: "Error deleting reel" });
         }
     });
@@ -1844,6 +1885,8 @@ router.put("/update/:id", async (req, res) => {
 
 
     } catch (error) {
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({
             message: "Error in updation!"
         });
@@ -1947,6 +1990,8 @@ router.put("/like/:id", async (req, res) => {
 
     } catch (error) {
         console.error("Error in liking/unliking reel:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Something went wrong" });
     }
 });
@@ -1969,6 +2014,8 @@ router.get("/totallikes", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching total likes:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -1990,6 +2037,8 @@ router.get("/totalviews", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching total views:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -2031,6 +2080,8 @@ router.get('/r/:slug', async (req, res) => {
 
     } catch (err) {
         console.error("Error in /r/:slug →", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).send("Server error");
     }
 });
@@ -2102,6 +2153,8 @@ router.get('/reel/:reelId/share/:userId', async (req, res) => {
 
     } catch (error) {
         console.error("Error generating short link →", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         return res.status(500).send("Server error");
     }
 });
@@ -2133,6 +2186,8 @@ router.get('/admin/fix-shortlinks-v2', async (req, res) => {
 
     } catch (err) {
         console.error(err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).send("Migration error");
     }
 });
@@ -2208,6 +2263,8 @@ router.put("/block/:id", async (req, res) => {
 
         } catch (error) {
             console.error("Error blocking/unblocking reel:", error);
+            error.statusCode = error.statusCode || 500;
+            await logError(req, error);
             res.status(500).json({ message: "Server error" });
         }
     });
@@ -2284,6 +2341,8 @@ router.put("/block/:id", async (req, res) => {
 
         } catch (error) {
             console.error("Error blocking/unblocking reel:", error);
+            error.statusCode = error.statusCode || 500;
+            await logError(req, error);
             res.status(500).json({ message: "Server error" });
         }
     });
@@ -2328,6 +2387,8 @@ router.get("/admin/users/:userid/liked-reels", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching liked reels:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         return res.status(500).json({ message: "Server error" });
     }
 });
@@ -2367,6 +2428,8 @@ router.get("/users/:userId/music", async (req, res) => {
         });
     } catch (err) {
         console.error("Fetch user music error:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Failed to fetch user music" });
     }
 });

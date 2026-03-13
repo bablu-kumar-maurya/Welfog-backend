@@ -5,6 +5,7 @@ const Staff = require("../models/Staff");
 const logUserAction = require("../utils/logUserAction");
 const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
+const logError = require("../utils/logError");
 //Abhi superadmin directly fetch kar rahe hain
 
 const getSuperAdmin = async () => {
@@ -79,6 +80,8 @@ router.get(
 
     } catch (error) {
       console.error("Failed to load roles:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({ message: "Failed to load roles" });
     }
   }
@@ -102,6 +105,7 @@ router.get("/:id", adminAuth, checkPermission("ADD_ROLE", "EDIT_ROLE", "DELETE_R
 
     res.json(role);
   } catch {
+    
     res.status(400).json({ message: "Invalid role id" });
   }
 });
@@ -175,6 +179,8 @@ router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
     res.status(201).json({ message: "Role created successfully" });
   } catch (error) {
     console.error("Create role error:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ message: "Failed to create role" });
   }
 });
@@ -246,6 +252,8 @@ router.put("/:id", adminAuth, checkPermission("EDIT_ROLE"), async (req, res) => 
     res.json({ message: "Role updated successfully" });
   } catch (error) {
     console.error("Update role error:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ message: "Failed to update role" });
   }
 });
@@ -313,6 +321,8 @@ router.delete("/:id", adminAuth, checkPermission("DELETE_ROLE"), async (req, res
     res.json({ message: "Role deleted successfully" });
   } catch (error) {
     console.error("Delete role error:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ message: "Failed to delete role" });
   }
 });
@@ -380,6 +390,8 @@ router.get(
 
     } catch (error) {
       console.error("Error loading staffs:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({ message: "Failed to load staffs" });
     }
   }
@@ -486,6 +498,8 @@ router.post(
       });
     } catch (error) {
       console.error("Create staff error:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({
         success: false,
         message: "Failed to create staff",
@@ -554,6 +568,8 @@ router.delete(
       });
     } catch (error) {
       console.error("Delete staff error:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(400).json({
         success: false,
         message: "Failed to delete staff",
@@ -637,6 +653,8 @@ router.put(
       res.json(staff);
     } catch (error) {
       console.error("Update staff error:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({ message: "Failed to update staff" });
     }
   }
@@ -654,6 +672,8 @@ router.get("/staffs/:id", adminAuth, checkPermission("VIEW_STAFFS"), async (req,
 
     res.json(staff);
   } catch (err) {
+    await logError(req, err);
+    err.statusCode = err.statusCode || 500;
     res.status(400).json({ message: "Invalid staff id" });
   }
 });

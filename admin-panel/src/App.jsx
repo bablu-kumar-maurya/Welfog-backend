@@ -24,6 +24,7 @@ import CreateRole from './pages/StaffManagement/CreateRole';
 import CreateStaff from './pages/StaffManagement/CreateStaff';
 import StaffAwareHome from './components/StaffAwareHome';
 import ActivityLogs from './pages/ActivityLogs';
+import ErrorLogs from "./pages/ErrorLogs";
 
 const RequirePermission = ({ children, anyOf }) => {
   const { user, userType, loading } = useAuth();
@@ -169,6 +170,7 @@ function App() {
                 <Reels />
               </RequirePermission>
             } />
+            
             <Route path="music" element={
               <RequirePermission anyOf={["VIEW_MUSIC"]}>
                 <Music />
@@ -184,6 +186,7 @@ function App() {
                 <Notifications />
               </RequirePermission>
             } />
+            <Route path="/errors" element={<ErrorLogs />} />
             <Route path="settings" element={
               <RequirePermission anyOf={["VIEW_SETTINGS"]}>
                 <Settings />

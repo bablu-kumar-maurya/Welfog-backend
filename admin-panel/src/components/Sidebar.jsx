@@ -14,7 +14,8 @@ import {
   MdClose,
   MdExpandMore,
   MdExpandLess,
-  MdGroupWork
+  MdGroupWork,
+   MdBugReport 
 } from 'react-icons/md';
 
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +41,7 @@ const Sidebar = () => {
     { path: '/comments', icon: MdComment, label: 'Comments' },
     { path: '/notifications', icon: MdNotifications, label: 'Notifications' },
     { path: '/activity-logs', icon: MdHistory, label: 'Activity Logs' },
+    { path: '/errors', icon: MdBugReport, label: 'Error Logs' },
     // Settings ko yahan se hata kar niche fixed position pe dala hai
   ];
 
@@ -51,7 +53,9 @@ const Sidebar = () => {
     if (item.path === '/music') return hasAnyPermission('VIEW_MUSIC');
     if (item.path === '/comments') return hasAnyPermission('VIEW_COMMENTS');
     if (item.path === '/notifications') return hasAnyPermission('VIEW_NOTIFICATIONS');
+    if (item.path === '/errors') return hasAnyPermission('VIEW_ERRORS');
     if (item.path === '/activity-logs') return false;
+    
     return true;
   });
 

@@ -12,7 +12,8 @@ const UserLog = require("../models/UserLog");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-
+const logError = require("../utils/logError");
+const ErrorLog = require("../models/ErrorLog");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -167,6 +168,8 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+    error.statusCode = error.statusCode || 500;
+      await logError(req, error);
     res.status(500).json({
       success: false,
       message: "Server error during login",
@@ -188,6 +191,8 @@ router.get("/verify", adminAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("Verify error:", error);
+    error.statusCode = error.statusCode || 500;
+      await logError(req, error);
     res.status(500).json({
       success: false,
       message: "Verification failed",
@@ -240,6 +245,8 @@ router.post("/create", async (req, res) => {
       },
     });
   } catch (error) {
+    error.statusCode = error.statusCode || 500;
+      await logError(req, error);
     console.error("Admin creation error:", error);
 
     if (error.code === 11000) {
@@ -314,6 +321,8 @@ router.put(
       });
     } catch (error) {
       console.error("Change password error:", error);
+      error.statusCode = error.statusCode || 500;
+        await logError(req, error);
       res.status(500).json({
         success: false,
         message: "Server error during password change",
@@ -383,6 +392,8 @@ router.get(
       });
     } catch (err) {
       console.error("Activity log error:", err);
+      err.statusCode = err.statusCode || 500;
+        await logError(req, err);
       res.status(500).json({ success: false, message: "Failed to fetch logs" });
     }
   }
@@ -440,6 +451,8 @@ router.put(
       });
     } catch (error) {
       console.error("Update settings error:", error);
+      error.statusCode = error.statusCode || 500;
+        await logError(req, error);
       res.status(500).json({
         success: false,
         message: "Server error during settings update",
@@ -539,6 +552,8 @@ res.json({
 });
     } catch (error) {
       console.error("Profile update error:", error);
+      error.statusCode = error.statusCode || 500;
+        await logError(req, error);
       res.status(500).json({
         success: false,
         message: "Server error while updating profile",
@@ -584,6 +599,8 @@ router.put(
         message: "Profile image removed successfully",
       });
     } catch (error) {
+      error.statusCode = error.statusCode || 500;
+        await logError(req, error);
       res.status(500).json({
         success: false,
         message: "Server error",
@@ -591,5 +608,53 @@ router.put(
     }
   }
 );
+
+router.get("/errors", async (req, res) => {
+  try {
+
+    const page = Number(req.query.page) || 1;
+    const limit = 16;
+    const skip = (page - 1) * limit;
+
+    const { startDate, endDate } = req.query;
+
+    let filter = {};
+
+    // ✅ Date filter
+    if (startDate || endDate) {
+
+      filter.createdAt = {};
+
+      if (startDate) {
+        filter.createdAt.$gte = new Date(startDate);
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
+
+    }
+
+    const logs = await ErrorLog.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ErrorLog.countDocuments(filter);
+
+    res.json({
+      logs,
+      total,
+      page
+    });
+
+  } catch (err) {
+    err.statusCode = err.statusCode || 500;
+    await logError(req, err);
+    res.status(500).json({ message: "Failed to fetch error logs" });
+  }
+});
 
 module.exports = router;

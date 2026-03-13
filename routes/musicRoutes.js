@@ -7,7 +7,7 @@ const User = require("../models/Users");
 const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logUserAction = require("../utils/logUserAction");
-
+const logError = require("../utils/logError");
 router.get("/search", async (req, res) => {
   const { q } = req.query;
   if (!q) return res.json([]);
@@ -54,6 +54,8 @@ router.get("/search", async (req, res) => {
     res.json(combinedResults);
   } catch (err) {
     console.error("❌ Error fetching tracks:", err.message);
+    err.statusCode = err.statusCode || 500;
+    await logError(req, err);
     res.status(500).json({ error: "Failed to fetch music" });
   }
 });
@@ -73,6 +75,8 @@ router.get("/searchindb", async (req, res) => {
 
     res.json(music);
   } catch (err) {
+    err.statusCode = err.statusCode || 500;
+    await logError(req, err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -130,6 +134,8 @@ router.post("/new", async (req, res) => {
     });
 
   } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     console.error("Error in upload music:", error);
 
     // unique index error safety
@@ -201,6 +207,8 @@ router.get("/",async (req, res) => {
 
     } catch (error) {
       console.error("Error fetching music:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({ success: false, message: "Server error" });
     }
   }
@@ -259,6 +267,8 @@ router.get("/admin-view", adminAuth, checkPermission("VIEW_MUSIC"), async (req, 
 
     } catch (error) {
       console.error("Error fetching music:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({ success: false, message: "Server error" });
     }
   }
@@ -272,6 +282,8 @@ router.get("/:id", async (req, res) => {
     if (!music) return res.status(404).json({ message: "Music not found" });
     res.json(music);
   } catch (err) {
+    err.statusCode = err.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -305,7 +317,10 @@ router.put("/update/:id", async (req, res) => {
     );
 
   } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ message: "Error to Update music" });
+
     console.log(error);
   }
 });
@@ -317,6 +332,8 @@ router.get("/users/:userId/music", async (req, res) => {
 
     res.json({ music });
   } catch (err) {
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -350,6 +367,8 @@ router.delete("/delete/:id", adminAuth, checkPermission("DELETE_MUSIC") , async 
 
   } catch (error) {
     console.error("Delete music error:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({
       message: "Server error while deleting music"
     });

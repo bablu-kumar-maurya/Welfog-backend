@@ -7,7 +7,7 @@ const createNotification = require("../utils/createNotification");
 const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logUserAction = require("../utils/logUserAction");
-
+const logError = require("../utils/logError");
 router.post("/new", async (req, res) => {
   try {
     const { user: userId, reel: reelId, text, parentComment } = req.body;
@@ -121,6 +121,8 @@ router.post("/new", async (req, res) => {
 
   } catch (error) {
     console.error("Comment creation error:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     return res.status(500).json({
       message: "Error occurred in Comment creation",
     });
@@ -190,6 +192,8 @@ router.get("/",  async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching comments:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ success: false, message: "Error fetching data" });
   }
 });
@@ -256,6 +260,8 @@ router.get("/admin-view", adminAuth, checkPermission("VIEW_COMMENTS"), async (re
 
   } catch (error) {
     console.error("Error fetching comments:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     res.status(500).json({ success: false, message: "Error fetching data" });
   }
 });
@@ -321,6 +327,8 @@ const startDate = req.query.startDate;
 
   } catch (error) {
     console.error("Error fetching user comments:", error);
+    error.statusCode = error.statusCode || 500;
+    await logError(req, error);
     return res.status(500).json({ message: "Error fetching user comments" });
   }
 });
@@ -336,6 +344,8 @@ router.get("/:id", async (req, res) => {
     };
     res.status(200).json(data);
   } catch (error) {
+    await logError(req, error);
+    error.statusCode = error.statusCode || 500;
     res.status(500).json({ message: "Error to fetching data" });
 
     console.log("Error to Fetching Data", error)
@@ -413,6 +423,8 @@ router.delete(
       });
     } catch (error) {
       console.error("Error in Delete Comment", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
       res.status(500).json({ message: "Error in Comment delete" });
     }
   }
@@ -485,6 +497,8 @@ router.delete(
       });
     } catch (error) {
       console.error("Error in Delete Comment", error);
+      error.statusCode = error.statusCode || 500;
+        await logError(req, error);
       res.status(500).json({ message: "Error in Comment delete" });
     }
   }
@@ -549,6 +563,8 @@ router.put("/update/:id", async (req, res) => {
 
   } catch (error) {
     console.log("Error in Update Comment", error);
+    error.statusCode = error.statusCode || 500;
+      await logError(req, error);
     res.status(500).json({ message: "Error in Comment" });
   }
 });
@@ -577,7 +593,8 @@ router.get('/reel/:reelId', async (req, res) => {
     return res.status(200).json(commentsWithReplies); // ✅ return here to prevent further execution
   } catch (error) {
     console.error("Error fetching comments:", error);
-
+    error.statusCode = error.statusCode || 500;
+  await logError(req, error);
     // ✅ Don't send response if already sent
     if (!res.headersSent) {
       return res.status(500).json({ message: "Internal Server Error" });
@@ -700,6 +717,8 @@ router.put("/like/:id", async (req, res) => {
 
   } catch (error) {
     console.error("Error in liking comment:", error);
+    error.statusCode = error.statusCode || 500;
+      await logError(req, error);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
@@ -754,6 +773,8 @@ router.get("/admin/users/:userid/liked-comments", async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching liked comments:", error);
+    error.statusCode = error.statusCode || 500;
+      await logError(req, error);
     return res.status(500).json({ message: "Server error" });
   }
 });

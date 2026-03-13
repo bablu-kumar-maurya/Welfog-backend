@@ -2,7 +2,7 @@ const router = require("express").Router();
 const Notification = require("../models/Notification");
 const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
-
+const logError = require("../utils/logError");
 
 router.get(
   '/',
@@ -62,6 +62,8 @@ router.get(
 
     } catch (err) {
       console.error('Error fetching notifications:', err);
+      err.statusCode = err.statusCode || 500;
+      await logError(req, err);
       res.status(500).json({ message: 'Failed to fetch notifications' });
     }
   }
@@ -126,6 +128,8 @@ router.get(
 
     } catch (err) {
       console.error('Error fetching notifications:', err);
+      err.statusCode = err.statusCode || 500;
+      await logError(req, err);
       res.status(500).json({ message: 'Failed to fetch notifications' });
     }
   }
@@ -142,6 +146,8 @@ router.get("/:userId", async (req, res) => {
     res.json(notifications);
   } catch (err) {
     console.error("Error fetching notifications:", err);
+    err.statusCode = err.statusCode || 500;
+    await logError(req, err);
     res.status(500).json({ message: "Failed to fetch notifications" });
   }
 });
@@ -154,6 +160,8 @@ router.put("/read/:id", async (req, res) => {
     });
     res.json({ message: "Notification marked as read" });
   } catch (err) {
+    err.statusCode = err.statusCode || 500;
+    await logError(req, err);
     res.status(500).json({ message: "Failed to update notification" });
   }
 });
@@ -178,6 +186,8 @@ router.delete("/delete/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting notification:", error);
+      error.statusCode = error.statusCode || 500;
+    await logError(req, err);
     return res.status(500).json({ message: "Failed to delete notification" });
   }
 });

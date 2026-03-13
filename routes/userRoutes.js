@@ -14,6 +14,7 @@ const createNotification = require("../utils/createNotification");
 const Comment = require("../models/Comment");
 const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
+const logError = require("../utils/logError");
 // create new user
 
 router.post("/", async (req, res) => {
@@ -119,11 +120,12 @@ router.post("/", async (req, res) => {
 
     } catch (error) {
         console.error("Error processing user:", error);
-
+error.statusCode = error.statusCode || 500;
         if (error.code === 11000) {
             const key = Object.keys(error.keyPattern)[0];
             return res.status(400).json({ message: `${key} already exists` });
         }
+        await logError(req, error);
 
         return res.status(500).json({ message: "Server error" });
     }
@@ -197,6 +199,8 @@ router.get("/", async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching users:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -267,6 +271,8 @@ router.get("/admin_users", adminAuth, checkPermission("VIEW_USERS"), async (req,
 
     } catch (error) {
         console.error("Error fetching users:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -389,6 +395,8 @@ router.get("/search_populer", async (req, res) => {
         });
     } catch (err) {
         console.error("❌ Search API Error:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -423,6 +431,8 @@ router.get("/:id", async (req, res) => {
         });
     } catch (err) {
         console.error("Error fetching user data:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -465,6 +475,8 @@ router.get("/userpost/:id", async (req, res) => {
 
     } catch (err) {
         console.error("Error fetching user reels:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -490,6 +502,8 @@ router.get("/:userid/followers", async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching followers:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         return res.status(500).json({ message: "Error fetching followers" });
     }
 });
@@ -513,6 +527,8 @@ router.get("/admin/users/:userid/following", async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching following:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         return res.status(500).json({ message: "Server error" });
     }
 });
@@ -553,6 +569,8 @@ router.get("/userlikedposts/:id", async (req, res) => {
         });
     } catch (err) {
         console.error("Error fetching user's liked reels:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -600,6 +618,8 @@ router.get("/userfollowing/:id", async (req, res) => {
 
     } catch (err) {
         console.error("Cleanup error:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -613,6 +633,8 @@ router.get("/bymobile/:mobile", async (req, res) => {
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
     } catch (err) {
+        await logError(req, err);
+        err.statusCode = err.statusCode || 500;
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -626,6 +648,8 @@ router.get("/byemailapp/:email", async (req, res) => {
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
     } catch (err) {
+        await logError(req, err);
+        err.statusCode = err.statusCode || 500;
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -689,6 +713,8 @@ router.delete("/:id", async (req, res) => {
         res.json({ message: `User ${deletedUserName} and all related data deleted successfully` });
     } catch (err) {
         console.error("Error deleting user:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -751,6 +777,8 @@ router.delete("/admin_users/:id",adminAuth, checkPermission("DELETE_USER"), asyn
         res.json({ message: `User ${deletedUserName} and all related data deleted successfully` });
     } catch (err) {
         console.error("Error deleting user:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -795,6 +823,8 @@ router.put("/:id/follow", async (req, res) => {
         }
     } catch (err) {
         console.error("Follow error:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         return res.status(500).json({ message: "Server error" });
     }
 });
@@ -846,6 +876,8 @@ router.put("/:id/unfollow", async (req, res) => {
             res.status(400).json({ message: "You are not following this user" });
         }
     } catch (err) {
+        await logError(req, err);
+        err.statusCode = err.statusCode || 500;
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -908,6 +940,8 @@ router.put("/:id/remove-follower", async (req, res) => {
         }
     } catch (err) {
         console.error("Remove follower error:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         return res.status(500).json({ message: "Server error" });
     }
 });
@@ -1003,6 +1037,8 @@ router.put("/:id", async (req, res) => {
         });
     } catch (err) {
         console.error("Update error:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -1098,6 +1134,8 @@ router.put("/admin_users/:id", adminAuth, checkPermission("SUSPEND_USER"),async 
         });
     } catch (err) {
         console.error("Update error:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -1429,6 +1467,8 @@ router.get("/:id/activity", async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching user activity:", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
         res.status(500).json({ message: "Server error" });
     }
 });
