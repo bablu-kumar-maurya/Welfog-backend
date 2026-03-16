@@ -480,9 +480,52 @@ router.get("/userpost/:id", async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
+router.get("/admin_userpost/:id", adminAuth ,  async (req, res) => {
+    try {
+        const userId = req.params.id;
+
+        // Get pagination parameters from query string
+        let limit = parseInt(req.query.limit) || 12; // default to 10
+        let skip = parseInt(req.query.skip) || 0;    // default to 0
+
+        // Validate inputs
+        if (limit < 1 || limit > 50) limit = 10;     // enforce max limit
+        if (skip < 0) skip = 0;
+
+        // Step 1: Fetch user (excluding passwordHash)
+        const user = await User.findById(userId).select("-passwordHash");
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Step 2: Get total count of reels
+        const totalCount = await Reel.countDocuments({ user: userId });
+
+        // Step 3: Get reels for this page
+        const reels = await Reel.find({ user: userId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Step 4: Determine if more data is available
+        const hasMore = skip + reels.length < totalCount;
+
+        // Step 5: Return user data + reels + metadata
+        res.json({
+            user: user.toObject(),
+            postCount: totalCount,
+            reels,
+            hasMore,
+        });
+
+    } catch (err) {
+        console.error("Error fetching user reels:", err);
+        err.statusCode = err.statusCode || 500;
+        await logError(req, err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
 
 // GET all followers of a user (ADMIN)
-router.get("/:userid/followers", async (req, res) => {
+router.get("/:userid/followers",adminAuth, async (req, res) => {
     try {
         const { userid } = req.params;
 
@@ -508,7 +551,7 @@ router.get("/:userid/followers", async (req, res) => {
     }
 });
 // GET all following of a specific user (ADMIN VIEW)
-router.get("/admin/users/:userid/following", async (req, res) => {
+router.get("/admin/users/:userid/following", adminAuth ,  async (req, res) => {
     try {
         const { userid } = req.params;
 
@@ -1141,7 +1184,7 @@ router.put("/admin_users/:id", adminAuth, checkPermission("SUSPEND_USER"),async 
 });
 
 // Get comprehensive user activity details
-router.get("/:id/activity", async (req, res) => {
+router.get("/:id/activity", adminAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { startDate, endDate, category, page = 1, limit = 10 } = req.query;

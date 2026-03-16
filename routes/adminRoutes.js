@@ -14,6 +14,7 @@ const path = require("path");
 const fs = require("fs");
 const logError = require("../utils/logError");
 const ErrorLog = require("../models/ErrorLog");
+const RefreshToken = require("../models/RefreshToken");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -143,19 +144,36 @@ router.post("/login", async (req, res) => {
     }
 
     /* ================= JWT (NO PERMISSIONS) ================= */
-    const token = jwt.sign(
-      {
-        id: user._id,
-        userType: user.userType,
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const accessToken = jwt.sign(
+  {
+    id: user._id,
+    userType: user.userType,
+  },
+  JWT_SECRET,
+  { expiresIn: "15m" }
+);
+
+const refreshToken = jwt.sign(
+  {
+    id: user._id,
+    userType: user.userType,
+  },
+  JWT_SECRET,
+  { expiresIn: "30d" }
+);
+await RefreshToken.create({
+  userId: user._id,
+  userType: user.userType,
+  token: refreshToken,
+  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+});
+
 
     return res.json({
       success: true,
       message: "Login successful",
-      token,
+      accessToken,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -261,6 +279,69 @@ router.post("/create", async (req, res) => {
       message: "Server error during admin creation",
     });
   }
+});
+
+router.post("/refresh", async (req, res) => {
+  try {
+
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
+
+    const storedToken = await RefreshToken.findOne({ token: refreshToken });
+
+    if (!storedToken) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    const decoded = jwt.verify(refreshToken, JWT_SECRET);
+
+    // 🔥 Token Rotation
+    await RefreshToken.deleteOne({ token: refreshToken });
+
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, userType: decoded.userType },
+      JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    const newRefreshToken = jwt.sign(
+      { id: decoded.id, userType: decoded.userType },
+      JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    await RefreshToken.create({
+      userId: decoded.id,
+      userType: decoded.userType,
+      token: newRefreshToken,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    });
+
+    res.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken
+    });
+
+  } catch (err) {
+    return res.status(401).json({ message: "Refresh token expired" });
+  }
+});
+router.post("/logout", adminAuth, async (req, res) => {
+
+  const { refreshToken } = req.body;
+
+  await RefreshToken.deleteOne({
+    userId: req.user._id,
+    token: refreshToken
+  });
+
+  res.json({
+    message: "Logged out successfully"
+  });
+
 });
 
 router.put(
@@ -609,7 +690,7 @@ router.put(
   }
 );
 
-router.get("/errors", async (req, res) => {
+router.get("/errors", adminAuth, async (req, res) => {
   try {
 
     const page = Number(req.query.page) || 1;
@@ -658,3 +739,5 @@ router.get("/errors", async (req, res) => {
 });
 
 module.exports = router;
+
+

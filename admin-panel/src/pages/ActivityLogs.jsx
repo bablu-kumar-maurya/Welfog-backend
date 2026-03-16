@@ -1,92 +1,3 @@
-// import { useEffect, useState } from "react";
-// import axios from "axios";
-// import toast from "react-hot-toast";
-
-// const ActivityLogs = () => {
-//   const [logs, setLogs] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     fetchLogs();
-//   }, []);
-
-//   const fetchLogs = async () => {
-//     try {
-//       const res = await axios.get("/api/admin/activity-logs");
-//       setLogs(res.data.logs || []);
-//     } catch (err) {
-//       toast.error("Failed to load activity logs");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   if (loading) {
-//     return <div className="text-white">Loading logs...</div>;
-//   }
-
-//   return (
-//     <div className="space-y-6">
-//       <h1 className="text-2xl font-bold text-white">
-//         Activity Logs
-//       </h1>
-
-//       <div className="bg-dark-900 border border-dark-700 rounded-xl overflow-x-auto">
-//         <table className="w-full text-sm">
-//           <thead className="bg-dark-800 text-dark-300">
-//             <tr>
-//               <th className="p-3 text-left">User</th>
-//               <th className="p-3 text-left">Role</th>
-//               <th className="p-3 text-left">Action</th>
-//               <th className="p-3 text-left">Target</th>
-//               <th className="p-3 text-left">Date</th>
-//               <th className="p-3 text-left">Device</th>
-//             </tr>
-//           </thead>
-
-//           <tbody>
-//             {logs.map((log) => (
-//               <tr
-//                 key={log._id}
-//                 className="border-t border-dark-800 hover:bg-dark-800"
-//               >
-//                 {/* ✅ USER NAME (FROM METADATA) */}
-//                 <td className="p-3 text-white">
-//                   {log.metadata?.userName || "Unknown"}
-//                 </td>
-
-//                 {/* ✅ ROLE NAME (FROM METADATA) */}
-//                 <td className="p-3 text-dark-400">
-//                   {typeof log.metadata?.userRole === "string"
-//                     ? log.metadata.userRole
-//                     : log.metadata?.userRole?.name || "-"}
-//                 </td>
-//                 <td className="p-3 text-blue-400 font-medium">
-//                   {log.action}
-//                 </td>
-
-//                 <td className="p-3 text-dark-400">
-//                   {log.targetType}
-//                 </td>
-
-//                 <td className="p-3 text-dark-400">
-//                   {new Date(log.createdAt).toLocaleString()}
-//                 </td>
-
-//                 <td className="p-3 text-dark-400">
-//                   {log.device || "-"}
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default ActivityLogs;
-
 
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
@@ -125,8 +36,14 @@ const ActivityLogs = () => {
     setLoading(true);
     try {
       const { action, targetType, search, startDate, endDate } = filters;
+       const token = localStorage.getItem("accessToken");
       const res = await axios.get(
-        `${API_BASE_URL}/api/admin/activity-logs?page=${currentPage}&limit=20&action=${action}&targetType=${targetType}&search=${search}&startDate=${startDate}&endDate=${endDate}`
+        `${API_BASE_URL}/api/admin/activity-logs?page=${currentPage}&limit=20&action=${action}&targetType=${targetType}&search=${search}&startDate=${startDate}&endDate=${endDate}`,{
+           headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
+        }
       );
       
       setLogs(res.data.logs || []);

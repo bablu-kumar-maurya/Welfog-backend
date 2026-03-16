@@ -5,12 +5,12 @@ const notificationSchema = new mongoose.Schema(
     // 👇 Option 1: Store User ObjectId (recommended for Mongo refs)
     recipient: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "User4",
       required: false
     },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "User4",
       required: false
     },
 

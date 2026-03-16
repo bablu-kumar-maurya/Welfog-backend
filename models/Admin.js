@@ -49,7 +49,7 @@ const adminSchema = new mongoose.Schema(
       default: "admin",
     },
 
-    // 🔥 ROLE MANAGEMENT
+  
     roles: {
       type: [roleSchema],
       default: [],
@@ -60,11 +60,11 @@ const adminSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ⚙️ SETTINGS FIELDS (YE ADD KIYA GAYA HAI FIX KE LIYE)
     siteName: {
       type: String,
       default: 'Welfog Internet Private Limited',
     },
+    
     maintenanceMode: {
       type: Boolean,
       default: false,

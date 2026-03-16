@@ -7,7 +7,7 @@ const bodyParser = require("body-parser");
 const authenticateToken = require("./middleware/auth");
 const checkMaintenance = require("./middleware/checkMaintenance");
 
-// 🔥 VERY IMPORTANT: Put this BEFORE all routes
+
 app.use(checkMaintenance);
 // ✅ Use CORS before routes
 const allowedOrigins = [
@@ -57,7 +57,7 @@ const commentRoute = require("./routes/commentRoute");
 const notificationRoute = require("./routes/notificationRoutes");
 const adminRoute = require("./routes/adminRoutes");
 const roleRoutes = require("./routes/roleRoutes");
-// ✅ Removed authentication requirement
+
 app.use("/api/users", userRoutes);
 app.use("/api/reels", reelRoute);
 app.use("/api/music", musicRoute);
@@ -70,7 +70,6 @@ app.get("/", (req, res) => {
   res.json({
     message: "Welcome to Neo Reels Backend API! Date 12th nov 2025",
     version: "1.0.11",
-
     status: "Server is running successfully! 🚀"
   });
 });

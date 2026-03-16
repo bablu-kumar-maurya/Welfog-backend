@@ -54,14 +54,50 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
+      const token = localStorage.getItem("accessToken");
       // Fetch dashboard data from backend
       const results = await Promise.allSettled([
-        axios.get(`${API_BASE_URL}/api/users`),
-        axios.get(`${API_BASE_URL}/api/reels`),
-        axios.get(`${API_BASE_URL}/api/music`),
-        axios.get(`${API_BASE_URL}/api/comment`),
-        axios.get(`${API_BASE_URL}/api/reels/totallikes`),
-        axios.get(`${API_BASE_URL}/api/reels/totalviews`),
+        axios.get(`${API_BASE_URL}/api/users/admin_users`, {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+        }
+        ),
+        axios.get(`${API_BASE_URL}/api/reels/admin_reels`, {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+
+        }),
+        axios.get(`${API_BASE_URL}/api/music/admin_view`, {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+
+        }),
+        axios.get(`${API_BASE_URL}/api/comment/admin_view`, {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+        }),
+        axios.get(`${API_BASE_URL}/api/reels/totallikes`, {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+
+        }),
+        axios.get(`${API_BASE_URL}/api/reels/totalviews`, {
+          headers:
+          {
+            Authorization: `Bearer ${token}`
+          }
+
+        }),
       ]);
 
       const [
@@ -309,64 +345,63 @@ const Dashboard = () => {
 
       {/* Recent Activity */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-    Recent Reels
-  </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Recent Reels
+        </h3>
 
-  <div className="overflow-x-auto">
-    <table className="w-full">
-      <thead>
-        <tr className="text-left border-b border-gray-200">
-          <th className="pb-3 text-gray-900 font-medium">Caption</th>
-          <th className="pb-3 text-gray-900 font-medium">Creator</th>
-          <th className="pb-3 text-gray-900 font-medium">Views</th>
-          <th className="pb-3 text-gray-900 font-medium">Likes</th>
-          <th className="pb-3 text-gray-900 font-medium">Status</th>
-        </tr>
-      </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left border-b border-gray-200">
+                <th className="pb-3 text-gray-900 font-medium">Caption</th>
+                <th className="pb-3 text-gray-900 font-medium">Creator</th>
+                <th className="pb-3 text-gray-900 font-medium">Views</th>
+                <th className="pb-3 text-gray-900 font-medium">Likes</th>
+                <th className="pb-3 text-gray-900 font-medium">Status</th>
+              </tr>
+            </thead>
 
-      <tbody>
-        {recentActivity.map((reel) => (
-          <tr
-            key={reel._id}
-            className="border-b border-gray-200 hover:bg-gray-100 transition-colors"
-          >
-            <td className="py-4 text-gray-900">
-              {reel.caption?.substring(0, 50) || 'No caption'}
-              {reel.caption?.length > 50 && '...'}
-            </td>
+            <tbody>
+              {recentActivity.map((reel) => (
+                <tr
+                  key={reel._id}
+                  className="border-b border-gray-200 hover:bg-gray-100 transition-colors"
+                >
+                  <td className="py-4 text-gray-900">
+                    {reel.caption?.substring(0, 50) || 'No caption'}
+                    {reel.caption?.length > 50 && '...'}
+                  </td>
 
-            <td className="py-4 text-gray-700">
-              {reel.username}
-            </td>
+                  <td className="py-4 text-gray-700">
+                    {reel.username}
+                  </td>
 
-            <td className="py-4 text-gray-700">
-              {reel.views?.toLocaleString() || 0}
-            </td>
+                  <td className="py-4 text-gray-700">
+                    {reel.views?.toLocaleString() || 0}
+                  </td>
 
-            <td className="py-4 text-gray-700">
-              {reel.likes?.length?.toLocaleString() || 0}
-            </td>
+                  <td className="py-4 text-gray-700">
+                    {reel.likes?.length?.toLocaleString() || 0}
+                  </td>
 
-            <td className="py-4">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  reel.status === 'Published'
-                    ? 'bg-green-600/20 text-green-600'
-                    : reel.status === 'Processing'
-                    ? 'bg-yellow-600/20 text-yellow-600'
-                    : 'bg-red-600/20 text-red-600'
-                }`}
-              >
-                {reel.status}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
+                  <td className="py-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${reel.status === 'Published'
+                          ? 'bg-green-600/20 text-green-600'
+                          : reel.status === 'Processing'
+                            ? 'bg-yellow-600/20 text-yellow-600'
+                            : 'bg-red-600/20 text-red-600'
+                        }`}
+                    >
+                      {reel.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
     </div>
   );

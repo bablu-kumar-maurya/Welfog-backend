@@ -266,7 +266,7 @@ router.get("/admin-view", adminAuth, checkPermission("VIEW_COMMENTS"), async (re
   }
 });
 // 🔥 GET all comments of a specific user(admin)
-router.get("/user/:userid", async (req, res) => {
+router.get("/user/:userid", adminAuth ,  async (req, res) => {
   try {
     const { userid } = req.params;
 
@@ -725,7 +725,7 @@ router.put("/like/:id", async (req, res) => {
 
 
 // GET all comments liked by a user (ADMIN VIEW)
-router.get("/admin/users/:userid/liked-comments", async (req, res) => {
+router.get("/admin/users/:userid/liked-comments", adminAuth , async (req, res) => {
   try {
     const { userid } = req.params;
 

@@ -45,9 +45,14 @@ const UserMusicUploads = () => {
       if (isFirstLoad.current) {
         setLoading(true);
       }
-
+const token = localStorage.getItem("accessToken");
       const res = await axios.get(
-        `${API_BASE_URL}/api/reels/users/${userId}/music?page=${page}&limit=${LIMIT}`
+        `${API_BASE_URL}/api/reels/users/${userId}/music?page=${page}&limit=${LIMIT}` ,{
+           headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
+        }
       );
 
       setMusic(res.data.music || []);
@@ -63,7 +68,13 @@ const UserMusicUploads = () => {
 
   const handleDelete = async (track) => {
     try {
-      const res = await axios.delete(`${API_BASE_URL}/api/music/delete/${track._id}`);
+      const token = localStorage.getItem("accessToken");
+      const res = await axios.delete(`${API_BASE_URL}/api/music/delete/${track._id}` , {
+          headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
+      });
       if (res.data?.success) {
         toast.success("Music deleted");
         setMusic((prev) =>

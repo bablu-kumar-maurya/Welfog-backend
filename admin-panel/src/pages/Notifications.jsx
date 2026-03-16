@@ -29,9 +29,9 @@ const Notifications = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-
+   const token = localStorage.getItem("accessToken");
       const { search, type, startDate, endDate } = filters;
-
+       
       const res = await axios.get(`${API_BASE_URL}/api/notifications/admin_notifications`, {
         params: {
           page,
@@ -41,6 +41,10 @@ const Notifications = () => {
           startDate,
           endDate
         },
+         headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       setNotifications(res.data.notifications || []);

@@ -42,7 +42,8 @@ const UserComments = () => {
       if (page === 1 && comments.length === 0) {
         setLoading(true);
       }
-
+      
+const token = localStorage.getItem("accessToken");
       const res = await axios.get(
         `${API_BASE_URL}/api/comment/user/${userId}`,
         {
@@ -50,7 +51,11 @@ const UserComments = () => {
             page,
             startDate: appliedStartDate || undefined,
             endDate: appliedEndDate || undefined
-          }
+          },
+         headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
         }
       );
 
@@ -74,7 +79,13 @@ const UserComments = () => {
   const handleViewReel = async (reelId) => {
     try {
       setReelLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/reels/current/${reelId}`);
+      const token = localStorage.getItem("accessToken");
+      const res = await axios.get(`${API_BASE_URL}/api/reels/admin_current/${reelId}` , {
+         headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setSelectedReel(res.data);
       setShowReelModal(true);
     } catch (err) {

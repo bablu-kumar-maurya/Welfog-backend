@@ -22,7 +22,7 @@ const Settings = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken");
         const response = await axios.get(`${API_BASE_URL}/api/admin/verify`, {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -51,7 +51,7 @@ const Settings = () => {
   const handleSaveSettings = async () => {
     const loadingToast = toast.loading("Updating settings...");
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       if (!token) {
         toast.error("Unauthorized. Please login again.", { id: loadingToast });
         return;
@@ -83,7 +83,7 @@ const Settings = () => {
       return;
     }
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       await axios.put(
         `${API_BASE_URL}/api/admin/change-password`,
         {

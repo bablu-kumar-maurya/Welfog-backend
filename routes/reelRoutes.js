@@ -1610,6 +1610,69 @@ router.get("/current/:id", async (req, res) => {
     }
 });
 
+router.get("/admin_current/:id", adminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { currentUserId } = req.query; // current logged-in user
+
+        // 1️⃣ Validate Reel ID
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ message: "Invalid reel ID" });
+        }
+
+        // 2️⃣ Fetch reel
+        const currentReel = await Reel.findById(id).lean();
+        if (!currentReel) {
+            return res.status(404).json({ message: "Reel not found!" });
+        }
+
+        // 🔥 3️⃣ BLOCK CHECK (MOST IMPORTANT)
+        if (currentReel.status === "Blocked") {
+            return res.status(404).json({ message: "Reel not available" });
+        }
+
+        // 4️⃣ Fetch current user's profile picture
+        let currentUserProfilePic = "";
+        if (currentUserId && mongoose.isValidObjectId(currentUserId)) {
+            const currentUser = await User.findById(
+                currentUserId,
+                "profilePicture"
+            ).lean();
+            currentUserProfilePic = currentUser?.profilePicture || "";
+        }
+
+        // 5️⃣ Fetch reel owner info
+        const reelOwner = await User.findById(
+            currentReel.user,
+            "profilePicture followers"
+        ).lean();
+
+        const reelUserProfilePic = reelOwner?.profilePicture || "";
+
+        // 6️⃣ Check follow status
+        const isFollowing = reelOwner?.followers?.some(
+            (followerId) => followerId.toString() === currentUserId
+        );
+
+        // 7️⃣ Final response object
+        const reelWithProfiles = {
+            ...currentReel,
+            reelUserProfilePic,
+            currentUserProfilePic,
+            isFollowing: !!isFollowing,
+        };
+
+        // 8️⃣ Send response
+        res.status(200).json(reelWithProfiles);
+
+    } catch (error) {
+        console.error("Error in /current/:id →", error);
+        error.statusCode = error.statusCode || 500;
+        await logError(req, error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 
 // Get other reels
 router.get("/others/:userId", async (req, res) => {
@@ -1998,7 +2061,7 @@ router.put("/like/:id", async (req, res) => {
 
 
 // return total likes of all users
-router.get("/totallikes", async (req, res) => {
+router.get("/totallikes",adminAuth ,  async (req, res) => {
     try {
         // Sirf likes field uthao (fast)
         const reels = await Reel.find({}, "likes");
@@ -2021,7 +2084,7 @@ router.get("/totallikes", async (req, res) => {
 });
 
 // return this api total views of all users
-router.get("/totalviews", async (req, res) => {
+router.get("/totalviews",adminAuth ,  async (req, res) => {
     try {
         // Sirf views field uthao (fast query)
         const reels = await Reel.find({}, "views");
@@ -2193,7 +2256,7 @@ router.get('/admin/fix-shortlinks-v2', async (req, res) => {
 });
 
 //  ADMIN: BLOCK / UNBLOCK REEL
-router.put("/block/:id", async (req, res) => {
+router.put("/block/:id",   async (req, res) => {
         try {
             const { id } = req.params;
             const { action, reason } = req.body;
@@ -2347,7 +2410,7 @@ router.put("/block/:id", async (req, res) => {
         }
     });
 
-router.get("/admin/users/:userid/liked-reels", async (req, res) => {
+router.get("/admin/users/:userid/liked-reels", adminAuth ,  async (req, res) => {
     try {
         const { userid } = req.params;
 
@@ -2394,7 +2457,7 @@ router.get("/admin/users/:userid/liked-reels", async (req, res) => {
 });
 
 
-router.get("/users/:userId/music", async (req, res) => {
+router.get("/users/:userId/music", adminAuth , async (req, res) => {
     try {
         const { userId } = req.params;
         const page = Number(req.query.page) || 1;

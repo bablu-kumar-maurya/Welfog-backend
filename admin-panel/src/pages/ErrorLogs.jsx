@@ -1,21 +1,19 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
 const ErrorLogs = () => {
     const [logs, setLogs] = useState([]);
     const [page, setPage] = useState(1);
 
-    // ✅ new states for date filter
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
-    // ✅ state for error modal
     const [selectedError, setSelectedError] = useState(null);
 
     const fetchLogs = async () => {
         try {
+
+            const token = localStorage.getItem("accessToken");
 
             let url = `http://localhost:4000/api/admin/errors?page=${page}`;
 
@@ -27,9 +25,14 @@ const ErrorLogs = () => {
                 url += `&endDate=${endDate}`;
             }
 
-            const res = await axios.get(url);
+            const res = await axios.get(url, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
 
             setLogs(res.data.logs || []);
+
         } catch (err) {
             console.error("Failed to fetch logs", err);
         }

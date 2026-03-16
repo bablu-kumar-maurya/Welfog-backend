@@ -25,13 +25,9 @@ const adminAuth = async (req, res, next) => {
 
       req.user = admin;
       req.userType = "admin";
-
-      // 👑 admin permissions
       req.permissions = admin.roles.flatMap(r => r.permissions);
-
-      // ✅🔥 FIX HERE (MOST IMPORTANT LINE)
-      req.userName = admin.username;   // ❗ admin ka name = username
-      req.userRole = admin.role;       // superadmin / admin
+      req.userName = admin.username;   
+      req.userRole = admin.role;       
 
       return next();
     }

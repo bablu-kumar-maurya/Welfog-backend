@@ -100,7 +100,13 @@ const UserActivityDetails = () => {
       if (endDate) params.endDate = endDate;
       if (selectedCategory !== 'all') params.category = selectedCategory;
       console.log('Fetching activity data for user:', userId, 'with params:', params);
-      const response = await axios.get(`${API_BASE_URL}/api/users/${userId}/activity`, { params });
+       const token = localStorage.getItem("accessToken");
+      const response = await axios.get(`${API_BASE_URL}/api/users/${userId}/activity`, { params } , {
+                 headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
+      });
       console.log('Activity data response:', response.data);
       if (response.data) {
         setUser(response.data.user || null);

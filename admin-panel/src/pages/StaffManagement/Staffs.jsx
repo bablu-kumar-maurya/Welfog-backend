@@ -287,29 +287,34 @@ const Staffs = () => {
   const limit = 10;
 
   // ================= FETCH STAFFS =================
- const fetchStaffs = async () => {
-  try {
-    const res = await axios.get(`${API_BASE_URL}/api/roles/staffs/all`, {
-      params: {
-        page,
-        limit,
-        search: filters.search,
-        startDate: filters.startDate,
-        endDate: filters.endDate
-      }
-    });
+  const fetchStaffs = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await axios.get(`${API_BASE_URL}/api/roles/staffs/all`, {
+        params: {
+          page,
+          limit,
+          search: filters.search,
+          startDate: filters.startDate,
+          endDate: filters.endDate
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
 
-    setStaffs(res.data.staffs || []);
+      });
 
-  } catch (err) {
-    console.error(err);
-    toast.error("Permission denied");
-  }
-};
+      setStaffs(res.data.staffs || []);
 
- useEffect(() => {
-  fetchStaffs();
-}, [page, filters]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Permission denied");
+    }
+  };
+
+  useEffect(() => {
+    fetchStaffs();
+  }, [page, filters]);
 
   // ================= DELETE STAFF =================
   const confirmDelete = async () => {
@@ -317,7 +322,14 @@ const Staffs = () => {
 
     try {
       setDeleting(true);
-      await axios.delete(`${API_BASE_URL}/api/roles/staffs/${staffToDelete._id}`);
+      const token = localStorage.getItem("accessToken");
+
+      await axios.delete(`${API_BASE_URL}/api/roles/staffs/${staffToDelete._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+
+      });
 
       toast.success("Staff deleted successfully");
       setStaffs((prev) =>
@@ -354,7 +366,7 @@ const Staffs = () => {
     return matchesSearch && matchesStart && matchesEnd;
   });
 
- 
+
   useEffect(() => {
     setPage(1);
   }, [filters]);
@@ -426,44 +438,44 @@ const Staffs = () => {
       </div>
 
       <div className="flex gap-3 flex-wrap mt-3">
-  <input
-    type="date"
-    value={filters.startDate}
-    onChange={(e) =>
-      setFilters(prev => ({
-        ...prev,
-        startDate: e.target.value
-      }))
-    }
-    className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
+        <input
+          type="date"
+          value={filters.startDate}
+          onChange={(e) =>
+            setFilters(prev => ({
+              ...prev,
+              startDate: e.target.value
+            }))
+          }
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        />
 
-  <input
-    type="date"
-    value={filters.endDate}
-    onChange={(e) =>
-      setFilters(prev => ({
-        ...prev,
-        endDate: e.target.value
-      }))
-    }
-    className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
+        <input
+          type="date"
+          value={filters.endDate}
+          onChange={(e) =>
+            setFilters(prev => ({
+              ...prev,
+              endDate: e.target.value
+            }))
+          }
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        />
 
-  <button
-    onClick={() => {
-      setFilters({
-        search: "",
-        startDate: "",
-        endDate: ""
-      });
-      setPage(1);
-    }}
-    className="text-xs font-bold text-red-500"
-  >
-    Reset
-  </button>
-</div>
+        <button
+          onClick={() => {
+            setFilters({
+              search: "",
+              startDate: "",
+              endDate: ""
+            });
+            setPage(1);
+          }}
+          className="text-xs font-bold text-red-500"
+        >
+          Reset
+        </button>
+      </div>
 
       {/* STAFF TABLE / CARDS */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">

@@ -25,8 +25,8 @@ const UserPosts = () => {
     const [activeVideoId, setActiveVideoId] = useState(null);
     const [confirmReel, setConfirmReel] = useState(null);
     const [confirmDeleteReel, setConfirmDeleteReel] = useState(null);
-const [startDate, setStartDate] = useState("");
-const [endDate, setEndDate] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const loadMoreRef = useRef(null);
 
     // ================= VIDEO HANDLERS =================
@@ -61,10 +61,15 @@ const [endDate, setEndDate] = useState("");
     const handleBlockReel = async (reel) => {
         try {
             const action = reel.status === "Blocked" ? "unblock" : "block";
-
-            await axios.put(`${API_BASE_URL}/api/reels/block/${reel._id}`, {
+            const token = localStorage.getItem("accessToken");
+            await axios.put(`${API_BASE_URL}/api/reels/admin_block/${reel._id}`, {
                 action,
                 reason: action === "block" ? "Admin blocked this reel" : null,
+            }, {
+                headers:
+                {
+                    Authorization: `Bearer ${token}`
+                }
             });
 
             toast.success(
@@ -89,15 +94,21 @@ const [endDate, setEndDate] = useState("");
         }
     };
 
-   const handleDeleteReel = async (reelId) => {
-    try {
-        await axios.delete(`${API_BASE_URL}/api/reels/delete/${reelId}`);
-        toast.success("Reel deleted");
-        setReels((prev) => prev.filter((r) => r._id !== reelId));
-    } catch {
-        toast.error("Failed to delete reel");
-    }
-};
+    const handleDeleteReel = async (reelId) => {
+        try {
+            const token = localStorage.getItem("accessToken");
+            await axios.delete(`${API_BASE_URL}/api/reels/admin_delete/${reelId}`, {
+                headers:
+                {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            toast.success("Reel deleted");
+            setReels((prev) => prev.filter((r) => r._id !== reelId));
+        } catch {
+            toast.error("Failed to delete reel");
+        }
+    };
 
 
     // ================= FETCH =================
@@ -113,9 +124,14 @@ const [endDate, setEndDate] = useState("");
     const fetchPosts = async (skipValue) => {
         try {
             setLoading(true);
-
-            const res = await axios.get(`${API_BASE_URL}/api/users/userpost/${id}`, {
-                params: { limit: LIMIT, skip: skipValue ,startDate, endDate},
+ const token = localStorage.getItem("accessToken");
+            const res = await axios.get(`${API_BASE_URL}/api/users/admin_userpost/${id}`, {
+                params: { limit: LIMIT, skip: skipValue, startDate, endDate },
+            } , {
+                  headers:
+        {
+          Authorization: `Bearer ${token}`
+        }
             });
 
             if (skipValue === 0) {
@@ -173,32 +189,32 @@ const [endDate, setEndDate] = useState("");
                     {"User Posts"}
                 </h1>
             </div>
-{/* 📅 Date Filter */}
-<div className="flex gap-3 flex-wrap items-center">
-    <input
-        type="date"
-        value={startDate}
-        onChange={(e) => setStartDate(e.target.value)}
-        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-    />
+            {/* 📅 Date Filter */}
+            <div className="flex gap-3 flex-wrap items-center">
+                <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                />
 
-    <input
-        type="date"
-        value={endDate}
-        onChange={(e) => setEndDate(e.target.value)}
-        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-    />
+                <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                />
 
-    <button
-        onClick={() => {
-            setStartDate("");
-            setEndDate("");
-        }}
-        className="text-xs font-bold text-red-500 hover:underline"
-    >
-        Reset
-    </button>
-</div>
+                <button
+                    onClick={() => {
+                        setStartDate("");
+                        setEndDate("");
+                    }}
+                    className="text-xs font-bold text-red-500 hover:underline"
+                >
+                    Reset
+                </button>
+            </div>
             {/* Spinner (first load only) */}
             {reels.length === 0 && loading && <div className="spinner" />}
 
@@ -285,12 +301,12 @@ const [endDate, setEndDate] = useState("");
                                     </div>
                                 </div>
 
-                                 {/* Actions */}
+                                {/* Actions */}
                                 <div className="flex items-center justify-between">
                                     <span
                                         className={`text-xs font-bold uppercase ${reel.status === "Blocked"
-                                                ? "text-red-500"
-                                                : "text-green-600"
+                                            ? "text-red-500"
+                                            : "text-green-600"
                                             }`}
                                     >
                                         {reel.status || "Active"}
@@ -338,81 +354,80 @@ const [endDate, setEndDate] = useState("");
 
 
             {confirmReel && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white border border-gray-200 rounded-lg p-5 w-full max-w-[320px] shadow-xl">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white border border-gray-200 rounded-lg p-5 w-full max-w-[320px] shadow-xl">
 
-      <h3 className="text-black text-lg font-bold mb-2">
-        {confirmReel.status === "Blocked"
-          ? "Unblock Reel?"
-          : "Block Reel?"}
-      </h3>
+                        <h3 className="text-black text-lg font-bold mb-2">
+                            {confirmReel.status === "Blocked"
+                                ? "Unblock Reel?"
+                                : "Block Reel?"}
+                        </h3>
 
-      <p className="text-gray-600 text-sm mb-4">
-        {confirmReel.status === "Blocked"
-          ? "This reel will be visible to users again."
-          : "This reel will be hidden from user feed."}
-      </p>
+                        <p className="text-gray-600 text-sm mb-4">
+                            {confirmReel.status === "Blocked"
+                                ? "This reel will be visible to users again."
+                                : "This reel will be hidden from user feed."}
+                        </p>
 
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => setConfirmReel(null)}
-          className="px-4 py-2 bg-gray-100 text-black rounded font-medium hover:bg-gray-200"
-        >
-          Cancel
-        </button>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setConfirmReel(null)}
+                                className="px-4 py-2 bg-gray-100 text-black rounded font-medium hover:bg-gray-200"
+                            >
+                                Cancel
+                            </button>
 
-        <button
-          onClick={() => {
-            handleBlockReel(confirmReel); 
-            setConfirmReel(null);
-          }}
-          className={`px-4 py-2 text-white rounded font-bold ${
-            confirmReel.status === "Blocked"
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-red-600 hover:bg-red-700"
-          }`}
-        >
-          Confirm
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                            <button
+                                onClick={() => {
+                                    handleBlockReel(confirmReel);
+                                    setConfirmReel(null);
+                                }}
+                                className={`px-4 py-2 text-white rounded font-bold ${confirmReel.status === "Blocked"
+                                    ? "bg-green-600 hover:bg-green-700"
+                                    : "bg-red-600 hover:bg-red-700"
+                                    }`}
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
 
-{confirmDeleteReel && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white border border-gray-200 rounded-lg p-5 w-full max-w-[320px] shadow-xl">
+            {confirmDeleteReel && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white border border-gray-200 rounded-lg p-5 w-full max-w-[320px] shadow-xl">
 
-      <h3 className="text-black text-lg font-bold mb-2">
-        Delete Reel?
-      </h3>
+                        <h3 className="text-black text-lg font-bold mb-2">
+                            Delete Reel?
+                        </h3>
 
-      <p className="text-gray-600 text-sm mb-4">
-        This action is permanent. This reel will be deleted forever.
-      </p>
+                        <p className="text-gray-600 text-sm mb-4">
+                            This action is permanent. This reel will be deleted forever.
+                        </p>
 
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => setConfirmDeleteReel(null)}
-          className="px-4 py-2 bg-gray-100 text-black rounded font-medium hover:bg-gray-200"
-        >
-          Cancel
-        </button>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setConfirmDeleteReel(null)}
+                                className="px-4 py-2 bg-gray-100 text-black rounded font-medium hover:bg-gray-200"
+                            >
+                                Cancel
+                            </button>
 
-        <button
-          onClick={() => {
-            handleDeleteReel(confirmDeleteReel);
-            setConfirmDeleteReel(null);
-          }}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold"
-        >
-          Yes, Delete
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                            <button
+                                onClick={() => {
+                                    handleDeleteReel(confirmDeleteReel);
+                                    setConfirmDeleteReel(null);
+                                }}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold"
+                            >
+                                Yes, Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
