@@ -71,14 +71,14 @@ const Dashboard = () => {
           }
 
         }),
-        axios.get(`${API_BASE_URL}/api/music/admin_view`, {
+        axios.get(`${API_BASE_URL}/api/music/admin-view`, {
           headers:
           {
             Authorization: `Bearer ${token}`
           }
 
         }),
-        axios.get(`${API_BASE_URL}/api/comment/admin_view`, {
+        axios.get(`${API_BASE_URL}/api/comment/admin-view`, {
           headers:
           {
             Authorization: `Bearer ${token}`
