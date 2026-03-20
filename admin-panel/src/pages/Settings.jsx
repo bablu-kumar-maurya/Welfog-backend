@@ -22,9 +22,9 @@ const Settings = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const token = localStorage.getItem("accessToken");
-        const response = await axios.get(`${API_BASE_URL}/api/admin/verify`, {
-            headers: { Authorization: `Bearer ${token}` }
+    
+        const response = await axios.get(`http://localhost:4000/api/admin/verify`, {
+          withCredentials: true 
         });
         
         if (response.data.success) {
@@ -51,19 +51,11 @@ const Settings = () => {
   const handleSaveSettings = async () => {
     const loadingToast = toast.loading("Updating settings...");
     try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        toast.error("Unauthorized. Please login again.", { id: loadingToast });
-        return;
-      }
-
       await axios.put(
-        `${API_BASE_URL}/api/admin/settings`, 
+        `http://localhost:4000/api/admin/settings`, 
         settings,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            withCredentials: true 
         }
       );
 
@@ -83,14 +75,16 @@ const Settings = () => {
       return;
     }
     try {
-      const token = localStorage.getItem("accessToken");
+     
       await axios.put(
-        `${API_BASE_URL}/api/admin/change-password`,
+        `http://localhost:4000/api/admin/change-password`,
         {
           currentPassword: passwordChange.currentPassword,
           newPassword: passwordChange.newPassword,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          withCredentials: true 
+        }
       );
       toast.success("Password changed successfully");
       setPasswordChange({ currentPassword: "", newPassword: "", confirmPassword: "" });

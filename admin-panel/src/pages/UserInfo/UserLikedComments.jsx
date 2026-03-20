@@ -33,13 +33,10 @@ const UserLikedComments = () => {
   const fetchLikedComments = async () => {
     try {
       setLoading(true);
-const token = localStorage.getItem("accessToken");
+
       const res = await axios.get(
-        `${API_BASE_URL}/api/comment/admin/users/${userId}/liked-comments` , {
-           headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+        `http://localhost:4000/api/comment/admin/users/${userId}/liked-comments` , {
+         withCredentials: true
         }
       );
 
@@ -76,12 +73,9 @@ const token = localStorage.getItem("accessToken");
   const handleViewReel = async (reelId) => {
     try {
       setReelLoading(true);
-  const token = localStorage.getItem("accessToken");
-      const res = await axios.get(`${API_BASE_URL}/api/reels/admin_current/${reelId}` , {
-         headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+
+      const res = await axios.get(`http://localhost:4000/api/reels/admin_current/${reelId}` , {
+      withCredentials: true
       });
 
       setSelectedReel(res.data);

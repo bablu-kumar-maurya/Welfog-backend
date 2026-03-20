@@ -7,20 +7,9 @@ import toast from "react-hot-toast";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // ✅ PATH FIXED: Ek extra '../' lagaya hai kyunki file ab StaffManagement folder ke andar hai
 import { PERMISSIONS_CONFIG } from "../../config/permissions"; 
-
-// ✅ axios instance
 const api = axios.create({
-  baseURL: `${API_BASE_URL}`,
-  withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  baseURL: `http://localhost:4000`,
+  withCredentials: true, 
 });
 
 const CreateRole = () => {
@@ -38,7 +27,7 @@ const CreateRole = () => {
     const fetchRole = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`${API_BASE_URL}/api/roles/${id}`);
+        const res = await api.get(`http://localhost:4000/api/roles/${id}`);
 
         setName(res.data.name);
 
@@ -81,7 +70,7 @@ const CreateRole = () => {
       setLoading(true);
 
       if (isEdit) {
-        await api.put(`${API_BASE_URL}/api/roles/${id}`, {
+        await api.put(`http://localhost:4000/api/roles/${id}`, {
           name,
           permissions: selectedPermissions,
         });

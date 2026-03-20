@@ -61,15 +61,12 @@ const UserPosts = () => {
     const handleBlockReel = async (reel) => {
         try {
             const action = reel.status === "Blocked" ? "unblock" : "block";
-            const token = localStorage.getItem("accessToken");
-            await axios.put(`${API_BASE_URL}/api/reels/admin_block/${reel._id}`, {
+            
+            await axios.put(`http://localhost:4000/api/reels/admin_block/${reel._id}`, {
                 action,
                 reason: action === "block" ? "Admin blocked this reel" : null,
             }, {
-                headers:
-                {
-                    Authorization: `Bearer ${token}`
-                }
+               withCredentials: true
             });
 
             toast.success(
@@ -96,12 +93,9 @@ const UserPosts = () => {
 
     const handleDeleteReel = async (reelId) => {
         try {
-            const token = localStorage.getItem("accessToken");
-            await axios.delete(`${API_BASE_URL}/api/reels/admin_delete/${reelId}`, {
-                headers:
-                {
-                    Authorization: `Bearer ${token}`
-                }
+            
+            await axios.delete(`http://localhost:4000/api/reels/admin_delete/${reelId}`, {
+             withCredentials: true
             });
             toast.success("Reel deleted");
             setReels((prev) => prev.filter((r) => r._id !== reelId));
@@ -124,14 +118,10 @@ const UserPosts = () => {
     const fetchPosts = async (skipValue) => {
         try {
             setLoading(true);
- const token = localStorage.getItem("accessToken");
-            const res = await axios.get(`${API_BASE_URL}/api/users/admin_userpost/${id}`, {
+            const res = await axios.get(`http://localhost:4000/api/users/admin_userpost/${id}`, {
                 params: { limit: LIMIT, skip: skipValue, startDate, endDate },
             } , {
-                  headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+         withCredentials: true
             });
 
             if (skipValue === 0) {

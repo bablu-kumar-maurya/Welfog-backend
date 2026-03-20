@@ -40,8 +40,8 @@ const Music = () => {
       setLoading(true);
 
       const { search, startDate, endDate } = filters;
-      const token = localStorage.getItem("accessToken");
-      const res = await axios.get(`${API_BASE_URL}/api/music/admin-view`, {
+    
+      const res = await axios.get(`http://localhost:4000/api/music/admin-view`, {
         params: {
           page,
           limit: LIMIT,
@@ -50,10 +50,7 @@ const Music = () => {
           endDate
         },
 
-        headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+     withCredentials: true 
 
       });
 
@@ -76,9 +73,9 @@ const Music = () => {
 
   const handleDelete = async (track) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      await axios.delete(`${API_BASE_URL}/api/music/delete/${track._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+     
+      await axios.delete(`http://localhost:4000/api/music/delete/${track._id}`, {
+   withCredentials: true 
       }
 
       );

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -36,13 +35,10 @@ const ActivityLogs = () => {
     setLoading(true);
     try {
       const { action, targetType, search, startDate, endDate } = filters;
-       const token = localStorage.getItem("accessToken");
+      
       const res = await axios.get(
-        `${API_BASE_URL}/api/admin/activity-logs?page=${currentPage}&limit=20&action=${action}&targetType=${targetType}&search=${search}&startDate=${startDate}&endDate=${endDate}`,{
-           headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+        `http://localhost:4000/api/admin/activity-logs?page=${currentPage}&limit=20&action=${action}&targetType=${targetType}&search=${search}&startDate=${startDate}&endDate=${endDate}`,{
+         withCredentials: true
         }
       );
       

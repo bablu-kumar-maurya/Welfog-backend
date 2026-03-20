@@ -16,10 +16,14 @@ const userSchema = new mongoose.Schema({
   seller_id: {
     type: String,
     default: "",
+    unique: true, // Ek seller_id sirf ek user ki ho sakti hai
+    sparse: true  // Bahut zaroori! Taaki jinke paas ID nahi hai (empty string), unme conflict na ho
   },
   userseller_id: {
     type: String,
     default: "",
+    unique: true, // Ek userseller_id sirf ek user ki ho sakti hai
+    sparse: true  // Taaki multiple empty strings allow ho sakein
   },
 
   name: { type: String, default: "" },
@@ -30,7 +34,14 @@ const userSchema = new mongoose.Schema({
 
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User4" }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User4" }],
-
+  // User Schema (User4) mein ye add karein:
+  isConnected: {
+    type: Boolean,
+    default: false
+  },
+  lastConnectedAt: {
+    type: Date
+  },
   bio: { type: String, default: "" },
   isSuspended: { type: Boolean, required: true, default: false },
   createdAt: { type: Date, default: Date.now },

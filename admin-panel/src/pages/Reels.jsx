@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -146,12 +145,9 @@ const Reels = () => {
     try {
       setLoading(true);
       const params = { page: pageNumber, limit, search, status, startDate, endDate };
-      const token = localStorage.getItem("accessToken");
-      const res = await axios.get(`${API_BASE_URL}/api/reels/admin_reels`, { params, signal }, {
-        headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+      
+      const res = await axios.get(`http://localhost:4000/api/reels/admin_reels`, { params, signal }, {
+       withCredentials: true 
       });
       setReels(Array.isArray(res.data.data) ? res.data.data : []);
       setTotalReels(res.data.total || 0);
@@ -167,14 +163,11 @@ const Reels = () => {
   const handleStatusChange = async (reel) => {
     try {
       const action = reel.status === "Blocked" ? "unblock" : "block";
-      const token = localStorage.getItem("accessToken");
-      await axios.put(`${API_BASE_URL}/api/reels/admin_block/${reel._id}`, {
+      
+      await axios.put(`http://localhost:4000/api/reels/admin_block/${reel._id}`, {
         action
       }, {
-        headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+        withCredentials: true 
       });
 
       toast.success(
@@ -242,13 +235,10 @@ const Reels = () => {
 
   const handleDelete = async (reel) => {
     try {
-      const token = localStorage.getItem("accessToken");
+      
       await axios.delete(
-        `${API_BASE_URL}/api/reels/admin_delete/${reel._id}/${reel.userid}`, {
-        headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+        `http://localhost:4000/api/reels/admin_delete/${reel._id}/${reel.userid}`, {
+       withCredentials: true 
       }
       );
 

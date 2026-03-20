@@ -54,48 +54,30 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const token = localStorage.getItem("accessToken");
+    
       // Fetch dashboard data from backend
       const results = await Promise.allSettled([
-        axios.get(`${API_BASE_URL}/api/users/admin_users`, {
-          headers:
-          {
-            Authorization: `Bearer ${token}`
-          }
+        axios.get(`http://localhost:4000/api/users/admin_users`, {
+         withCredentials: true 
         }
         ),
-        axios.get(`${API_BASE_URL}/api/reels/admin_reels`, {
-          headers:
-          {
-            Authorization: `Bearer ${token}`
-          }
+        axios.get(`http://localhost:4000/api/reels/admin_reels`, {
+          withCredentials: true 
 
         }),
-        axios.get(`${API_BASE_URL}/api/music/admin-view`, {
-          headers:
-          {
-            Authorization: `Bearer ${token}`
-          }
+        axios.get(`http://localhost:4000/api/music/admin-view`, {
+           withCredentials: true 
 
         }),
-        axios.get(`${API_BASE_URL}/api/comment/admin-view`, {
-          headers:
-          {
-            Authorization: `Bearer ${token}`
-          }
+        axios.get(`http://localhost:4000/api/comment/admin-view`, {
+          withCredentials: true 
         }),
-        axios.get(`${API_BASE_URL}/api/reels/totallikes`, {
-          headers:
-          {
-            Authorization: `Bearer ${token}`
-          }
+        axios.get(`http://localhost:4000/api/reels/totallikes`, {
+          withCredentials: true 
 
         }),
-        axios.get(`${API_BASE_URL}/api/reels/totalviews`, {
-          headers:
-          {
-            Authorization: `Bearer ${token}`
-          }
+        axios.get(`http://localhost:4000/api/reels/totalviews`, {
+          withCredentials: true 
 
         }),
       ]);

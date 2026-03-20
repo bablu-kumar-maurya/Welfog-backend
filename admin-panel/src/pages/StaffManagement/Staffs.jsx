@@ -1,266 +1,3 @@
-// import { useEffect, useState, useRef } from "react";
-// import { useNavigate } from "react-router-dom";
-// import axios from "axios";
-// import toast from "react-hot-toast";
-// import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
-
-// const Staffs = () => {
-//   const navigate = useNavigate();
-//   const topRef = useRef(null);
-
-//   const [staffs, setStaffs] = useState([]);
-//   const [search, setSearch] = useState("");
-
-//   const [staffToDelete, setStaffToDelete] = useState(null);
-//   const [deleting, setDeleting] = useState(false);
-
-//   // 🔥 PAGINATION
-//   const [page, setPage] = useState(1);
-//   const limit = 10;
-
-//   // ================= FETCH STAFFS =================
-//   const fetchStaffs = async () => {
-//     try {
-//       const res = await axios.get("/api/roles/staffs/all");
-//       setStaffs(Array.isArray(res.data) ? res.data : []);
-//     } catch (err) {
-//       console.error(err);
-//       toast.error("Permission denied");
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchStaffs();
-//   }, []);
-
-//   // ================= DELETE STAFF =================
-//   const confirmDelete = async () => {
-//     if (!staffToDelete) return;
-
-//     try {
-//       setDeleting(true);
-//       await axios.delete(`/api/roles/staffs/${staffToDelete._id}`);
-
-//       toast.success("Staff deleted successfully");
-//       setStaffs((prev) =>
-//         prev.filter((s) => s._id !== staffToDelete._id)
-//       );
-//     } catch {
-//       toast.error("Permission denied");
-//     } finally {
-//       setDeleting(false);
-//       setStaffToDelete(null);
-//     }
-//   };
-
-//   // ================= SEARCH FILTER =================
-//   const filteredStaffs = staffs.filter((s) =>
-//     [s.name, s.email, s.phone]
-//       .join(" ")
-//       .toLowerCase()
-//       .includes(search.toLowerCase())
-//   );
-
-//   // 🔥 RESET PAGE WHEN SEARCH CHANGES
-//   useEffect(() => {
-//     setPage(1);
-//   }, [search]);
-
-//   // ================= PAGINATION LOGIC =================
-//   const totalPages = Math.ceil(filteredStaffs.length / limit);
-
-//   const startIndex = (page - 1) * limit;
-//   const endIndex = startIndex + limit;
-
-//   const currentPageStaffs = filteredStaffs.slice(
-//     startIndex,
-//     endIndex
-//   );
-
-//   // ================= PAGE CHANGE + SMOOTH SCROLL =================
-//   useEffect(() => {
-//     if (topRef.current) {
-//       topRef.current.scrollIntoView({
-//         behavior: "smooth",
-//         block: "start",
-//       });
-//     }
-//   }, [page]);
-
-//   const goToPreviousPage = () => {
-//     if (page > 1) setPage((p) => p - 1);
-//   };
-
-//   const goToNextPage = () => {
-//     if (page < totalPages) setPage((p) => p + 1);
-//   };
-
-//   return (
-//     <div ref={topRef} className="space-y-6 animate-fadeIn">
-//       {/* HEADER */}
-//       <div className="flex justify-between items-start">
-//         <div>
-//           <h1 className="text-2xl font-bold text-white">All Staffs</h1>
-//           <p className="text-sm text-dark-400 mt-1">
-//             Manage all staff members ({filteredStaffs.length})
-//           </p>
-//         </div>
-
-//         <button
-//           onClick={() => navigate("/staffs/create")}
-//           className="bg-primary-600 hover:bg-primary-700 px-5 py-2 rounded-lg text-white flex items-center gap-2"
-//         >
-//           <MdAdd size={18} />
-//           Add New Staff
-//         </button>
-//       </div>
-
-//       {/* SEARCH */}
-//       <div className="bg-dark-900 p-4 rounded-xl border border-dark-700 relative">
-//         <input
-//           placeholder="Search by Name, Email or Phone....."
-//           value={search}
-//           onChange={(e) => setSearch(e.target.value)}
-//           className="w-full pl-12 p-3 bg-dark-800 text-white rounded-lg border border-dark-700 outline-none"
-//         />
-//       </div>
-
-//       {/* STAFF TABLE */}
-//       <div className="bg-dark-900 border border-dark-700 rounded-xl">
-//         {/* HEADER */}
-//         <div className="grid grid-cols-12 p-4 text-sm font-semibold text-dark-400 border-b border-dark-700">
-//           <div className="col-span-1">S/N</div>
-//           <div className="col-span-2 text-center">Name</div>
-//           <div className="col-span-3 text-center">Email</div>
-//           <div className="col-span-2 text-center">Phone</div>
-//           <div className="col-span-2 text-center">Role</div>
-//           <div className="col-span-1 text-center">User Type</div>
-//           <div className="col-span-1 text-right">Options</div>
-//         </div>
-
-//         {/* BODY */}
-//         {currentPageStaffs.length === 0 ? (
-//           <p className="text-dark-400 p-6 text-center">
-//             No staff found
-//           </p>
-//         ) : (
-//           currentPageStaffs.map((s, index) => (
-//             <div
-//               key={s._id}
-//               className="grid grid-cols-12 items-center p-4 border-b border-dark-700 last:border-b-0"
-//             >
-//               <div className="col-span-1 text-white">
-//                 {startIndex + index + 1}
-//               </div>
-
-//               <div className="col-span-2 text-center text-white">
-//                 {s.name}
-//               </div>
-
-//               <div className="col-span-3 text-center text-dark-300">
-//                 {s.email}
-//               </div>
-
-//               <div className="col-span-2 text-center text-dark-300">
-//                 {s.phone || "-"}
-//               </div>
-
-//               <div className="col-span-2 text-center text-primary-400">
-//                 {s.role?.name || "-"}
-//               </div>
-
-//               <div className="col-span-1 text-center text-white">
-//                 {s.userType || "admin"}
-//               </div>
-
-//               <div className="col-span-1 flex justify-end gap-3">
-//                 <button
-//                   onClick={() =>
-//                     navigate(`/staffs/edit/${s._id}`)
-//                   }
-//                   className="text-blue-400 hover:text-blue-300"
-//                 >
-//                   <MdEdit size={18} />
-//                 </button>
-
-//                 <button
-//                   onClick={() => setStaffToDelete(s)}
-//                   className="text-red-400 hover:text-red-300"
-//                 >
-//                   <MdDelete size={18} />
-//                 </button>
-//               </div>
-//             </div>
-//           ))
-//         )}
-//       </div>
-
-//       {/* PAGINATION */}
-//     <div className="flex justify-center items-center gap-4 mt-6">
-//   <button
-//     onClick={goToPreviousPage}
-//     disabled={page === 1}
-//     className="px-4 py-2 bg-dark-800 text-white rounded disabled:opacity-50"
-//   >
-//     &lt; Previous
-//   </button>
-
-//   <span className="text-white">
-//     Page {page} of {totalPages || 1}
-//   </span>
-
-//   <button
-//     onClick={goToNextPage}
-//     disabled={page === totalPages || totalPages === 0}
-//     className="px-4 py-2 bg-dark-800 text-white rounded disabled:opacity-50"
-//   >
-//     Next &gt;
-//   </button>
-// </div>
-
-
-//       {/* DELETE CONFIRM POPUP */}
-//       {staffToDelete && (
-//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-//           <div className="bg-dark-900 rounded-xl p-6 w-full max-w-sm border border-dark-700">
-//             <h2 className="text-lg font-semibold text-white mb-2">
-//               Delete Staff
-//             </h2>
-
-//             <p className="text-sm text-dark-400 mb-6">
-//               Are you sure you want to delete{" "}
-//               <span className="text-white font-medium">
-//                 {staffToDelete.name}
-//               </span>
-//               ?
-//             </p>
-
-//             <div className="flex justify-end gap-3">
-//               <button
-//                 onClick={() => setStaffToDelete(null)}
-//                 disabled={deleting}
-//                 className="px-4 py-2 rounded bg-dark-800 text-white"
-//               >
-//                 No
-//               </button>
-
-//               <button
-//                 onClick={confirmDelete}
-//                 disabled={deleting}
-//                 className="px-4 py-2 rounded bg-red-600 text-white disabled:opacity-60"
-//               >
-//                 {deleting ? "Deleting..." : "Yes"}
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default Staffs;
-
 
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -281,16 +18,13 @@ const Staffs = () => {
 
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-
-  // 🔥 PAGINATION
   const [page, setPage] = useState(1);
   const limit = 10;
 
   // ================= FETCH STAFFS =================
   const fetchStaffs = async () => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await axios.get(`${API_BASE_URL}/api/roles/staffs/all`, {
+      const res = await axios.get(`http://localhost:4000/api/roles/staffs/all`, {
         params: {
           page,
           limit,
@@ -298,9 +32,7 @@ const Staffs = () => {
           startDate: filters.startDate,
           endDate: filters.endDate
         },
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+       withCredentials: true
 
       });
 
@@ -322,12 +54,9 @@ const Staffs = () => {
 
     try {
       setDeleting(true);
-      const token = localStorage.getItem("accessToken");
 
-      await axios.delete(`${API_BASE_URL}/api/roles/staffs/${staffToDelete._id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      await axios.delete(`http://localhost:4000/api/roles/staffs/${staffToDelete._id}`, {
+       withCredentials: true
 
       });
 

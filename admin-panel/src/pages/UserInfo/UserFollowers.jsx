@@ -32,18 +32,13 @@ const UserFollowers = () => {
   const fetchFollowers = async () => {
     try {
       setLoading(true);
-  const token = localStorage.getItem("accessToken");
-      const res = await axios.get(`${API_BASE_URL}/api/users/${userId}/followers`, {
+  
+      const res = await axios.get(`http://localhost:4000/api/users/${userId}/followers`, {
         params: {
           startDate: appliedStartDate || undefined,
           endDate: appliedEndDate || undefined
         },
-        
-              headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
-        
+       withCredentials: true
       });
 console.log("API Response:", res.data);
       // ✅ REMOVE NULL VALUES (VERY IMPORTANT)

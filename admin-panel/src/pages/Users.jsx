@@ -52,7 +52,7 @@ const Users = () => {
 
       const { search, status, startDate, endDate } = filters;
 
-      const response = await axios.get(`${API_BASE_URL}/api/users/admin_users`, {
+      const response = await axios.get(`http://localhost:4000/api/users/admin_users`, {
         params: {
           page,
           limit,
@@ -61,6 +61,7 @@ const Users = () => {
           startDate,
           endDate
         },
+           withCredentials: true 
       });
 
       setUsers(response.data.data);
@@ -74,8 +75,9 @@ const Users = () => {
 
   const handleSuspendToggle = async (userId, currentStatus) => {
     try {
-      await axios.put(`${API_BASE_URL}/api/users/admin_users/${userId}`, {
+      await axios.put(`http://localhost:4000/api/users/admin_users/${userId}`, {
         isSuspended: !currentStatus,
+           withCredentials: true 
       });
 
       toast.success(
@@ -94,7 +96,9 @@ const Users = () => {
   // NEW: Delete User Function
   const handleDeleteUser = async (userId) => {
     try {
-      await axios.delete(`${API_BASE_URL}/api/users/admin_users/${userId}`);
+      await axios.delete(`http://localhost:4000/api/users/admin_users/${userId}` , {
+           withCredentials: true 
+      });
 
       toast.success('User and all related data deleted successfully');
 

@@ -1,162 +1,9 @@
-// import { createContext, useContext, useState, useEffect, useRef } from "react";
-// import axios from "axios";
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-// const AuthContext = createContext();
-
-// export const useAuth = () => {
-//   const context = useContext(AuthContext);
-//   if (!context) {
-//     throw new Error("useAuth must be used within AuthProvider");
-//   }
-//   return context;
-// };
-
-// export const AuthProvider = ({ children }) => {
-//   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-//   // 🔥 admin OR staff object
-//   const [user, setUser] = useState(null);
-
-//   // 🔥 "admin" | "staff"
-//   const [userType, setUserType] = useState(null);
-
-//   const [loading, setLoading] = useState(true);
-
-//   // ⚠️ to avoid double verify after fresh login
-//   const loginSuccessfulRef = useRef(false);
-
-//   /* ======================================================
-//      🔁 VERIFY TOKEN ON APP LOAD / REFRESH
-//   ====================================================== */
-//   useEffect(() => {
-//     if (loginSuccessfulRef.current) {
-//       setLoading(false);
-//       return;
-//     }
-
-//     const token = localStorage.getItem("token");
-//     const storedUserType = localStorage.getItem("userType");
-
-//     if (!token || !storedUserType) {
-//       setLoading(false);
-//       return;
-//     }
-
-//     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-//     verifyToken(storedUserType);
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, []);
-
-//   const verifyToken = async (type) => {
-//     try {
-//       setLoading(true);
-        
-//       const res = await axios.get(`${API_BASE_URL}/api/admin/verify`);
-
-//       if (res.data.success) {
-//         setIsAuthenticated(true);
-//         setUser(res.data.user);
-//         setUserType(res.data.userType);
-//       } else {
-//         logout();
-//       }
-//     } catch (err) {
-//       console.error("Token verification failed:", err);
-//       logout();
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   /* ======================================================
-//      🔐 LOGIN (ADMIN + STAFF — SAME API)
-//   ====================================================== */
-//   const login = async (credentials) => {
-//     try {
-//       setLoading(true);
-
-//       const response = await axios.post(`${API_BASE_URL}/api/admin/login`, credentials);
-
-//       if (!response.data.success) {
-//         setLoading(false);
-//         return {
-//           success: false,
-//           message: response.data.message || "Login failed",
-//         };
-//       }
-
-//       const { token, user } = response.data;
-
-//       // 🔥 save token + userType
-//       localStorage.setItem("token", token);
-//       localStorage.setItem("userType", user.userType);
-
-//       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-//       loginSuccessfulRef.current = true;
-
-//       setIsAuthenticated(true);
-//       setUser(user);
-//       setUserType(user.userType);
-//       setLoading(false);
-
-//       return {
-//         success: true,
-//         user,
-//       };
-//     } catch (error) {
-//       console.error("Login failed:", error);
-//       setLoading(false);
-
-//       return {
-//         success: false,
-//         message: error.response?.data?.message || "Login failed",
-//       };
-//     }
-//   };
-
-//   /* ======================================================
-//      🚪 LOGOUT
-//   ====================================================== */
-//   const logout = () => {
-//     localStorage.removeItem("token");
-//     localStorage.removeItem("userType");
-
-//     delete axios.defaults.headers.common["Authorization"];
-
-//     setIsAuthenticated(false);
-//     setUser(null);
-//     setUserType(null);
-//     loginSuccessfulRef.current = false;
-//   };
-
-//   /* ======================================================
-//      CONTEXT PROVIDER
-//   ====================================================== */
-//   return (
-//     <AuthContext.Provider
-//       value={{
-//         isAuthenticated,
-//         user,       // 🔥 admin OR staff
-//         userType,  
-//         setUser, // 🔥 "admin" | "staff"
-//         loading,
-//         login,
-//         logout,
-//       }}
-//     >
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
-
-
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import axios from "axios";
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// ✅ Global configuration for Cookies
+axios.defaults.withCredentials = true;
+const API_BASE_URL = "http://localhost:4000";
 
 const AuthContext = createContext();
 
@@ -169,226 +16,134 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [userType, setUserType] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loginSuccessfulRef = useRef(false);
   const isRefreshing = useRef(false);
 
   /* ======================================================
-     VERIFY TOKEN ON APP LOAD
+     1. VERIFY TOKEN (FIXED FOR PAGE RELOAD)
   ====================================================== */
-
-  useEffect(() => {
-
-    const accessToken = localStorage.getItem("accessToken");
-    const storedUserType = localStorage.getItem("userType");
-
-    if (!accessToken || !storedUserType) {
-      setLoading(false);
-      return;
-    }
-
-    axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-
-    verifyToken();
-
-  }, []);
-
   const verifyToken = async () => {
-
     try {
-
-      const res = await axios.get("http://localhost:4000/api/admin/verify");
+      const res = await axios.get(`${API_BASE_URL}/api/admin/verify`);
 
       if (res.data.success) {
-
         setIsAuthenticated(true);
         setUser(res.data.user);
         setUserType(res.data.userType);
-
-      } else {
-
-        logout();
-
       }
-
     } catch (err) {
-
-      logout();
-
+      // ✅ FIX: Agar verify fail ho (401), toh check karo ki kya refresh ho sakta hai
+      if (err.response?.status === 401) {
+        try {
+          const refreshRes = await axios.post(`${API_BASE_URL}/api/admin/refresh`);
+          if (refreshRes.data.success) {
+            // Refresh success! Ab user data ke liye dobara verify call karo
+            const retryRes = await axios.get(`${API_BASE_URL}/api/admin/verify`);
+            setIsAuthenticated(true);
+            setUser(retryRes.data.user);
+            setUserType(retryRes.data.userType);
+            return; // Exit function successfully
+          }
+        } catch (refreshErr) {
+          console.error("Refresh token expired on reload");
+        }
+      }
+      // Agar refresh bhi fail ho gaya, tabhi logout state set karo
+      logoutStateOnly();
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
-  /* ======================================================
-     AXIOS AUTO REFRESH TOKEN
-  ====================================================== */
-
   useEffect(() => {
-
-    const interceptor = axios.interceptors.response.use(
-
-      (response) => response,
-
-      async (error) => {
-
-        const originalRequest = error.config;
-
-        if (
-          error.response?.status === 401 &&
-          !originalRequest._retry &&
-          !originalRequest.url.includes("/refresh")
-        ) {
-
-          originalRequest._retry = true;
-
-          const refreshToken = localStorage.getItem("refreshToken");
-
-          if (!refreshToken) {
-            logout();
-            return Promise.reject(error);
-          }
-
-          if (isRefreshing.current) {
-            return Promise.reject(error);
-          }
-
-          isRefreshing.current = true;
-
-          try {
-
-            const res = await axios.post(
-              "http://localhost:4000/api/admin/refresh",
-              { refreshToken }
-            );
-
-            const { accessToken, refreshToken: newRefreshToken } = res.data;
-
-            localStorage.setItem("accessToken", accessToken);
-            localStorage.setItem("refreshToken", newRefreshToken);
-
-            axios.defaults.headers.common["Authorization"] =
-              `Bearer ${accessToken}`;
-
-            originalRequest.headers["Authorization"] =
-              `Bearer ${accessToken}`;
-
-            isRefreshing.current = false;
-
-            return axios(originalRequest);
-
-          } catch (err) {
-
-            isRefreshing.current = false;
-            logout();
-            return Promise.reject(err);
-
-          }
-
-        }
-
-        return Promise.reject(error);
-
-      }
-
-    );
-
-    return () => axios.interceptors.response.eject(interceptor);
-
+    verifyToken();
   }, []);
 
   /* ======================================================
-     LOGIN
+     2. AXIOS INTERCEPTOR (FOR BACKGROUND REFRESH)
   ====================================================== */
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
 
-  const login = async (credentials) => {
+        // Skip interceptor if it's a login or already a refresh attempt
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !originalRequest.url.includes("/refresh") &&
+          !originalRequest.url.includes("/login")
+        ) {
+          originalRequest._retry = true;
 
-    try {
+          if (isRefreshing.current) return Promise.reject(error);
+          isRefreshing.current = true;
 
-      setLoading(true);
-
-      const response = await axios.post(
-        "http://localhost:4000/api/admin/login",
-        credentials
-      );
-
-      if (!response.data.success) {
-
-        setLoading(false);
-
-        return {
-          success: false,
-          message: response.data.message || "Login failed",
-        };
-
+          try {
+            await axios.post(`${API_BASE_URL}/api/admin/refresh`);
+            isRefreshing.current = false;
+            return axios(originalRequest); // Retry the failed request
+          } catch (err) {
+            isRefreshing.current = false;
+            logout(); // Full logout if refresh fails
+            return Promise.reject(err);
+          }
+        }
+        return Promise.reject(error);
       }
+    );
 
-      const { accessToken, refreshToken, user } = response.data;
+    return () => axios.interceptors.response.eject(interceptor);
+  }, []);
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("userType", user.userType);
+  /* ======================================================
+     3. LOGIN
+  ====================================================== */
+  const login = async (credentials) => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_BASE_URL}/api/admin/login`, credentials);
 
-      axios.defaults.headers.common["Authorization"] =
-        `Bearer ${accessToken}`;
-
-      loginSuccessfulRef.current = true;
-
-      setIsAuthenticated(true);
-      setUser(user);
-      setUserType(user.userType);
-
-      setLoading(false);
-
-      return {
-        success: true,
-        user,
-      };
-
+      if (response.data.success) {
+        const { user } = response.data;
+        setIsAuthenticated(true);
+        setUser(user);
+        setUserType(user.userType);
+        localStorage.setItem("userType", user.userType);
+        return { success: true, user };
+      }
+      return { success: false, message: response.data.message };
     } catch (error) {
-
+      return { success: false, message: error.response?.data?.message || "Login failed" };
+    } finally {
       setLoading(false);
-
-      return {
-        success: false,
-        message: error.response?.data?.message || "Login failed",
-      };
-
     }
-
   };
 
   /* ======================================================
-     LOGOUT
+     4. LOGOUT
   ====================================================== */
-
-  const logout = () => {
-
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userType");
-
-    delete axios.defaults.headers.common["Authorization"];
-
+  const logoutStateOnly = () => {
     setIsAuthenticated(false);
     setUser(null);
     setUserType(null);
-
-    loginSuccessfulRef.current = false;
-
+    localStorage.removeItem("userType");
   };
 
-  /* ======================================================
-     PROVIDER
-  ====================================================== */
+  const logout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/api/admin/logout`);
+    } catch (err) {
+      console.error("Logout error", err);
+    } finally {
+      logoutStateOnly();
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -396,7 +151,6 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         user,
         userType,
-        setUser,
         loading,
         login,
         logout,
@@ -405,5 +159,4 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-
 };

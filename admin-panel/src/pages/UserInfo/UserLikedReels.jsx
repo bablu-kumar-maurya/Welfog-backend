@@ -48,18 +48,15 @@ const UserLikedReels = () => {
     try {
       // Only show loading overlay on first page load to prevent blinking on page change
       setLoading(pageNo === 1);
-       const token = localStorage.getItem("accessToken");
+      
       const res = await axios.get(
-        `${API_BASE_URL}/api/reels/admin/users/${userId}/liked-reels`,
+        `http://localhost:4000/api/reels/admin/users/${userId}/liked-reels`,
         {
           params: {
             page: pageNo,
             limit: LIMIT,
           },
-             headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+      withCredentials: true
         } , 
         
       );
@@ -104,16 +101,13 @@ const UserLikedReels = () => {
   // ================= ADMIN ACTIONS =================
   const handleBlockReel = async (reel) => {
     try {
-       const token = localStorage.getItem("accessToken");
+       
       const action = reel.status === "Blocked" ? "unblock" : "block";
-      await axios.put(`${API_BASE_URL}/api/reels/admin_block/${reel._id}`, {
+      await axios.put(`http://localhost:4000/api/reels/admin_block/${reel._id}`, {
         action,
         reason: action === "block" ? "Admin blocked this reel" : null,
       } , {
-           headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+       withCredentials: true
       });
 
       toast.success(action === "block" ? "Reel blocked" : "Reel unblocked");
@@ -132,13 +126,10 @@ const UserLikedReels = () => {
 
  const handleDeleteReel = async (reel) => {
   try {
-  const token = localStorage.getItem("accessToken");
+
     await axios.delete(
-      `${API_BASE_URL}/api/reels/admin_delete/${reel._id}/${reel.userid}` ,{
-           headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+      `http://localhost:4000/api/reels/admin_delete/${reel._id}/${reel.userid}` ,{
+       withCredentials: true
       }
     );
 

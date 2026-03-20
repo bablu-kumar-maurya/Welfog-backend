@@ -27,13 +27,10 @@ const UserFollowing = () => {
   const fetchFollowing = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("accessToken");
+     
       const res = await axios.get(
-        `${API_BASE_URL}/api/users/admin/users/${userId}/following` , {
-                   headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+        `http://localhost:4000/api/users/admin/users/${userId}/following` , {
+        withCredentials: true
         }
       );
       const list = res.data.following || [];

@@ -19,7 +19,8 @@ const logError = require("../utils/logError");
 
 router.post("/", async (req, res) => {
     try {
-        let { userid, mobile, name, username, email, profilePicture, bio, seller_id, userseller_id } = req.body;
+        // ✅ added isConnected in destructuring
+        let { userid, mobile, name, username, email, profilePicture, bio, seller_id, userseller_id, isConnected } = req.body;
 
         // ✅ Mobile is required
         if (!mobile) {
@@ -39,21 +40,47 @@ router.post("/", async (req, res) => {
 
         if (!usernameRegex.test(username)) {
             return res.status(400).json({
-                message: "Username must be 3-20 characters and contain only letters, numbers, or underscore"
+                message: "Username must be 6-20 characters and contain letters, numbers, and special characters"
             });
         }
 
         // ✅ Check if user already exists by mobile
         let existingUser = await User.findOne({ mobile });
 
-        if (existingUser) {
+        // 🔥 UNIQUE CHECK: seller_id and userseller_id check before saving/updating
+        if (seller_id) {
+            const duplicateSeller = await User.findOne({ 
+                seller_id, 
+                _id: { $ne: existingUser?._id } 
+            });
+            if (duplicateSeller) {
+                return res.status(400).json({ message: "Seller ID already exists" });
+            }
+        }
 
+        if (userseller_id) {
+            const duplicateUserSeller = await User.findOne({ 
+                userseller_id, 
+                _id: { $ne: existingUser?._id } 
+            });
+            if (duplicateUserSeller) {
+                return res.status(400).json({ message: "User Seller ID already exists" });
+            }
+        }
+
+        if (existingUser) {
             if (name) existingUser.name = name;
             if (email) existingUser.email = email;
             if (profilePicture) existingUser.profilePicture = profilePicture;
             if (bio) existingUser.bio = bio;
 
-            // 🔥 UPDATED: Now take from frontend instead of auto-generate
+            // ✅ Update connection status
+            if (typeof isConnected !== 'undefined') {
+                existingUser.isConnected = isConnected;
+                existingUser.lastConnectedAt = new Date();
+            }
+
+            // Update seller IDs if provided
             if (seller_id) existingUser.seller_id = seller_id;
             if (userseller_id) existingUser.userseller_id = userseller_id;
 
@@ -65,6 +92,7 @@ router.post("/", async (req, res) => {
                 userid: existingUser.userid,
                 username: existingUser.username,
                 name: existingUser.name,
+                isConnected: existingUser.isConnected, // ✅ added in response
                 seller_id: existingUser.seller_id,
                 userseller_id: existingUser.userseller_id,
                 mobile: existingUser.mobile,
@@ -78,24 +106,24 @@ router.post("/", async (req, res) => {
             });
         }
 
+        // Check if username is taken (for New User)
         const existingUsername = await User.findOne({ username });
-
         if (existingUsername) {
             return res.status(400).json({ message: "Username already taken" });
         }
 
         // ✅ Create new user
         const newUser = new User({
-            userid: uuidv4(), // backend-generated permanent user id
+            userid: uuidv4(),
             mobile,
             username,
             name: name || "",
             email: email || "",
             profilePicture: profilePicture || "",
             bio: bio || "",
-            // 🔥 UPDATED: save values from frontend
-            seller_id: seller_id,
-            userseller_id: userseller_id,
+            isConnected: isConnected || false, // ✅ added here
+            seller_id: seller_id || "",
+            userseller_id: userseller_id || "",
         });
 
         const savedUser = await newUser.save();
@@ -106,6 +134,7 @@ router.post("/", async (req, res) => {
             userid: savedUser.userid,
             username: savedUser.username,
             name: savedUser.name,
+            isConnected: savedUser.isConnected, // ✅ added in response
             seller_id: savedUser.seller_id,
             userseller_id: savedUser.userseller_id,
             mobile: savedUser.mobile,
@@ -120,18 +149,14 @@ router.post("/", async (req, res) => {
 
     } catch (error) {
         console.error("Error processing user:", error);
-error.statusCode = error.statusCode || 500;
         if (error.code === 11000) {
             const key = Object.keys(error.keyPattern)[0];
             return res.status(400).json({ message: `${key} already exists` });
         }
-        await logError(req, error);
-
         return res.status(500).json({ message: "Server error" });
     }
 });
 
-// get all users
 router.get("/", async (req, res) => {
     try {
         const page = Number(req.query.page) || 1;

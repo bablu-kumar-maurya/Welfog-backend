@@ -13,7 +13,6 @@ const ErrorLogs = () => {
     const fetchLogs = async () => {
         try {
 
-            const token = localStorage.getItem("accessToken");
 
             let url = `http://localhost:4000/api/admin/errors?page=${page}`;
 
@@ -26,9 +25,7 @@ const ErrorLogs = () => {
             }
 
             const res = await axios.get(url, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+               withCredentials: true 
             });
 
             setLogs(res.data.logs || []);

@@ -1,6 +1,3 @@
-
-
-
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -45,8 +42,10 @@ const Comments = () => {
       if (page === 1) setInitialLoading(true);
 
       const { search, startDate, endDate } = filters;
-      const token = localStorage.getItem("accessToken");
-      const res = await axios.get(`${API_BASE_URL}/api/comment/admin-view`, {
+      
+      // ✅ FIX: localStorage se token lene ki zaroorat nahi hai
+      // ✅ FIX: withCredentials: true add kiya hai cookies ke liye
+      const res = await axios.get(`http://localhost:4000/api/comment/admin-view`, {
         params: {
           page,
           limit: LIMIT,
@@ -54,10 +53,7 @@ const Comments = () => {
           startDate,
           endDate
         },
-        headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+        withCredentials: true // 🛡️ Cookies automatic bhejne ke liye
       });
 
       setComments(res.data.comments || []);
@@ -73,17 +69,13 @@ const Comments = () => {
   const handleDelete = async (comment) => {
     try {
       const userId = comment.user?._id;
-      const token = localStorage.getItem("accessToken");
-      await axios.delete(`${API_BASE_URL}/api/comment/admin_comment/delete/${comment._id}/${userId}`, {
-        headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+      
+      // ✅ FIX: headers hata kar withCredentials add kiya
+      await axios.delete(`http://localhost:4000/api/comment/admin_comment/delete/${comment._id}/${userId}`, {
+        withCredentials: true
       });
 
       toast.success("Comment deleted");
-
-      // ✅ Correct call
       fetchComments();
 
     } catch (error) {
@@ -94,24 +86,19 @@ const Comments = () => {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-
     setFilters(prev => ({
       ...prev,
       [name]: value
     }));
-
     setPage(1);
   };
 
   const handleViewReel = async (reelId) => {
     try {
       setReelLoading(true);
-      const token = localStorage.getItem("accessToken");
+      // ✅ FIX: headers hata kar withCredentials add kiya
       const res = await axios.get(`http://localhost:4000/api/reels/admin_current/${reelId}`, {
-        headers:
-        {
-          Authorization: `Bearer ${token}`
-        }
+        withCredentials: true
       });
       setSelectedReel(res.data);
       setShowReelModal(true);
@@ -135,10 +122,8 @@ const Comments = () => {
         <p className="text-gray-500">Manage all comments</p>
       </div>
 
-      {/* Search */}
       {/* FILTER BAR */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-4 items-end">
-
         {/* Search */}
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-bold uppercase text-gray-400">Search</label>
@@ -190,7 +175,6 @@ const Comments = () => {
         >
           Reset
         </button>
-
       </div>
 
       {/* Table */}

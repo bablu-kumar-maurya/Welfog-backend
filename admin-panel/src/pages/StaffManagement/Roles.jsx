@@ -6,17 +6,8 @@ import { MdAdd, MdDelete, MdEdit } from "react-icons/md";
 import toast from "react-hot-toast";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const api = axios.create({
-  baseURL: `${API_BASE_URL}`,
-  withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  baseURL: `http://localhost:4000`,
+  withCredentials: true, 
 });
 
 const PER_PAGE = 10;
@@ -42,7 +33,7 @@ const Roles = () => {
   const fetchRoles = async () => {
   try {
     setLoading(true);
-    const res = await api.get(`${API_BASE_URL}/api/roles`);
+    const res = await api.get(`http://localhost:4000/api/roles`);
 
     setRoles(Array.isArray(res.data.roles) ? res.data.roles : []);
 
@@ -70,7 +61,7 @@ const Roles = () => {
 
   const deleteRole = async () => {
     try {
-      await api.delete(`${API_BASE_URL}/api/roles/${roleToDelete}`);
+      await api.delete(`http://localhost:4000/api/roles/${roleToDelete}`);
       toast.success("Role deleted successfully");
       setRoles((prev) => prev.filter((r) => r._id !== roleToDelete));
       closeDeleteModal();

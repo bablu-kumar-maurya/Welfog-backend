@@ -143,37 +143,52 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    /* ================= JWT (NO PERMISSIONS) ================= */
+    /* ================= JWT GENERATION ================= */
     const accessToken = jwt.sign(
-  {
-    id: user._id,
-    userType: user.userType,
-  },
-  JWT_SECRET,
-  { expiresIn: "15m" }
-);
+      { id: user._id, userType: user.userType },
+      JWT_SECRET,
+      { expiresIn: "10m" }
+    );
 
-const refreshToken = jwt.sign(
-  {
-    id: user._id,
-    userType: user.userType,
-  },
-  JWT_SECRET,
-  { expiresIn: "30d" }
-);
-await RefreshToken.create({
-  userId: user._id,
-  userType: user.userType,
-  token: refreshToken,
-  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-});
+    const refreshToken = jwt.sign(
+      { id: user._id, userType: user.userType },
+      JWT_SECRET,
+      { expiresIn: "30d" }
+    );
 
+    await RefreshToken.create({
+      userId: user._id,
+      userType: user.userType,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    });
 
+    /* ================= COOKIE SETTINGS ================= */
+    const isProd = process.env.NODE_ENV === "production";
+    
+    // Cookie options for security
+    const cookieOptions = {
+      httpOnly: true, // Prevents XSS attacks (JS cannot read)
+      secure: isProd, // Only sent over HTTPS in production
+      sameSite: isProd ? "none" : "lax", // CSRF protection
+    };
+
+    // Set cookies
+    res.cookie("accessToken", accessToken, { 
+      ...cookieOptions, 
+      maxAge: 15 * 60 * 1000 // 15 mins
+    });
+
+    res.cookie("refreshToken", refreshToken, { 
+      ...cookieOptions, 
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+
+    /* ================= FINAL RESPONSE ================= */
+    // Note: accessToken and refreshToken removed from the body for security
     return res.json({
       success: true,
       message: "Login successful",
-      accessToken,
-      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -181,20 +196,20 @@ await RefreshToken.create({
         profileImage: user.profileImage,
         userType: user.userType,
         role: user.role,
-        permissions, // ✅ frontend ke liye
+        permissions,
       },
     });
+
   } catch (error) {
     console.error("Login error:", error);
     error.statusCode = error.statusCode || 500;
-      await logError(req, error);
+    if (typeof logError === 'function') await logError(req, error);
     res.status(500).json({
       success: false,
       message: "Server error during login",
     });
   }
 });
-
 router.get("/verify", adminAuth, async (req, res) => {
   try {
     const userObj = req.user?.toObject ? req.user.toObject() : req.user;
@@ -283,8 +298,8 @@ router.post("/create", async (req, res) => {
 
 router.post("/refresh", async (req, res) => {
   try {
-
-    const { refreshToken } = req.body;
+    // ✅ FIX: Ab token cookie se uthayenge (XSS se bachne ke liye)
+    const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
       return res.status(401).json({ message: "Refresh token missing" });
@@ -298,13 +313,13 @@ router.post("/refresh", async (req, res) => {
 
     const decoded = jwt.verify(refreshToken, JWT_SECRET);
 
-    // 🔥 Token Rotation
+    // 🔥 Token Rotation (Aapka original logic)
     await RefreshToken.deleteOne({ token: refreshToken });
 
     const newAccessToken = jwt.sign(
       { id: decoded.id, userType: decoded.userType },
       JWT_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "10m" }
     );
 
     const newRefreshToken = jwt.sign(
@@ -320,28 +335,56 @@ router.post("/refresh", async (req, res) => {
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     });
 
-    res.json({
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken
-    });
+    // ✅ FIX: Naye tokens ko firse cookies mein set karo
+    const isProd = process.env.NODE_ENV === "production";
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+    };
+
+    res.cookie("accessToken", newAccessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+    res.cookie("refreshToken", newRefreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+
+    // Body mein tokens bhejne ki zaroorat nahi hai
+    res.json({ success: true, message: "Token refreshed successfully" });
 
   } catch (err) {
-    return res.status(401).json({ message: "Refresh token expired" });
+    return res.status(401).json({ message: "Refresh token expired or invalid" });
   }
 });
 router.post("/logout", adminAuth, async (req, res) => {
+  try {
+    // ✅ FIX: Cookie se refresh token lo delete karne ke liye
+    const refreshToken = req.cookies.refreshToken;
 
-  const { refreshToken } = req.body;
+    if (refreshToken) {
+      await RefreshToken.deleteOne({
+        userId: req.user._id,
+        token: refreshToken
+      });
+    }
 
-  await RefreshToken.deleteOne({
-    userId: req.user._id,
-    token: refreshToken
-  });
+    // ✅ FIX: Browser se cookies ko clear karo
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+    
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
 
-  res.json({
-    message: "Logged out successfully"
-  });
-
+    res.json({
+      success: true,
+      message: "Logged out successfully"
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Logout failed" });
+  }
 });
 
 router.put(
