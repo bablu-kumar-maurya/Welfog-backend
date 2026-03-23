@@ -15,6 +15,7 @@ const Comment = require("../models/Comment");
 const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logError = require("../utils/logError");
+const axios = require('axios');
 // create new user
 
 router.post("/", async (req, res) => {
@@ -157,6 +158,8 @@ router.post("/", async (req, res) => {
     }
 });
 
+
+
 router.get("/", async (req, res) => {
     try {
         const page = Number(req.query.page) || 1;
@@ -229,6 +232,7 @@ router.get("/", async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
+
 router.get("/admin_users", adminAuth, checkPermission("VIEW_USERS"), async (req, res) => {
     try {
         const page = Number(req.query.page) || 1;
@@ -448,6 +452,10 @@ router.get("/:id", async (req, res) => {
             email: user.email,
             profilePicture: user.profilePicture,
             bio: user.bio,
+            isConnected: user.isConnected || false,
+            seller_id: user.seller_id || "",
+            userseller_id: user.userseller_id || "",
+            lastConnectedAt: user.lastConnectedAt,
             followers: user.followers,
             following: user.following,
             isSuspended: user.isSuspended,
@@ -1015,6 +1023,8 @@ router.put("/:id/remove-follower", async (req, res) => {
 });
 
 // update user
+
+
 router.put("/:id", async (req, res) => {
     const { username, name, email, mobile, profilePicture, bio, currentPassword, newPassword, isSuspended } = req.body;
 
@@ -1022,68 +1032,70 @@ router.put("/:id", async (req, res) => {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        // ✅ PEHLA ADD: User ka username capture kiya log ke liye
-        const targetUserName = user.username || user.userName || "Unknown User";
+        const targetUserName = user.username || "Unknown User";
 
-        // Update password if needed
+        // Password update logic (Same as before)
         if (currentPassword && newPassword) {
             const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
             if (!isMatch) return res.status(400).json({ message: "Current password is incorrect" });
-
-            const hashedPassword = await bcrypt.hash(newPassword, 10);
-            user.passwordHash = hashedPassword;
+            user.passwordHash = await bcrypt.hash(newPassword, 10);
         }
 
-        // Update other fields
+        // 🔹 Check karo kya Name ya Username change ho raha hai
+        const isNameChanged = (name && name !== user.name) || (username && username !== user.username);
+
+        // Fields update
         if (username) user.username = username;
         if (name) user.name = name;
         if (profilePicture) user.profilePicture = profilePicture;
         if (bio) user.bio = bio;
         if (typeof isSuspended === 'boolean') user.isSuspended = isSuspended;
 
-        // Validate email
         if (email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;   // normal email validation
-            if (!emailRegex.test(email)) {
-                return res.status(400).json({ message: "Invalid email format" });
-            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) return res.status(400).json({ message: "Invalid email format" });
             user.email = email;
         }
 
-        // Validate mobile number (only 10 digits allowed)
         if (mobile) {
-            const mobileRegex = /^[0-9]{10}$/;  // exactly 10 digits
-            if (!mobileRegex.test(mobile)) {
-                return res.status(400).json({ message: "Mobile number must be exactly 10 digits" });
-            }
+            const mobileRegex = /^[0-9]{10}$/;
+            if (!mobileRegex.test(mobile)) return res.status(400).json({ message: "Mobile number must be 10 digits" });
             user.mobile = mobile;
         }
 
         const updatedUser = await user.save();
 
+        // 🔥 MAIN LOGIC: External API Call
+        // Agar Name/Username change hua hai AUR user connected hai
+        if (isNameChanged && updatedUser.isConnected === true && updatedUser.seller_id) {
+            try {
+                await axios.post("https://supplier.welfog.com/api/playlinks/sellerplay", {
+                    seller_id: updatedUser.seller_id,
+                    play_profile_user_name: updatedUser.username,
+                    play_profile_name: updatedUser.name
+                });
+                console.log("External API updated successfully");
+            } catch (apiErr) {
+                // Hum response block nahi karenge agar external API fail ho jaye, 
+                // bas log karenge.
+                console.error("External API Update Failed:", apiErr.message);
+            }
+        }
+
+        // Suspend Log Logic (Same as before)
         try {
             if (typeof isSuspended === "boolean") {
                 await logUserAction({
                     user: req.user._id,
                     userName: req.userName,
                     userRole: req.userRole,
-
-                    action: isSuspended
-                        ? "account_suspended"
-                        : "account_reactivated",
-
+                    action: isSuspended ? "account_suspended" : "account_reactivated",
                     targetType: "User",
-                    targetId: user._id,          // ✅ jisko suspend / unsuspend kiya
-
-                    // ✅ DUSRA ADD: Target Name pass kiya dashboard ke liye
+                    targetId: user._id,
                     targetName: targetUserName,
-
                     device: req.headers["user-agent"],
                     location: {
-                        ip:
-                            req.headers["x-forwarded-for"] ||
-                            req.socket.remoteAddress ||
-                            "",
+                        ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
                         country: req.headers["cf-ipcountry"] || "",
                     },
                 });
@@ -1101,11 +1113,12 @@ router.put("/:id", async (req, res) => {
             bio: updatedUser.bio,
             isSuspended: updatedUser.isSuspended,
             mobile: updatedUser.mobile,
+            isConnected: updatedUser.isConnected,
+            seller_id: updatedUser.seller_id,
             createdAt: updatedUser.createdAt,
         });
     } catch (err) {
         console.error("Update error:", err);
-        err.statusCode = err.statusCode || 500;
         await logError(req, err);
         res.status(500).json({ message: "Server error" });
     }

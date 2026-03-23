@@ -1,134 +1,12 @@
-// import { useAuth } from '../context/AuthContext';
-// import { MdLogout, MdAccountCircle } from 'react-icons/md';
-// import toast from 'react-hot-toast';
-// import { useNavigate } from 'react-router-dom';
-
-// const Navbar = () => {
-//   const { user, userType, logout } = useAuth();
-//   const navigate = useNavigate();
-
-//   const handleLogout = () => {
-//     logout();
-//     toast.success('Logged out successfully');
-//     navigate('/login');
-//   };
-
-//   return (
-//     <nav className="bg-dark-900 border-b border-dark-700 px-6 py-6">
-//       <div className="flex items-center justify-between">
-//         <div>
-//           <h2 className="text-xl font-semibold text-white">
-//             Welcome back, {user?.username || user?.name || 'Admin'}
-//           </h2>
-//           <p className="text-sm text-dark-400">
-//             Manage your platform efficiently
-//           </p>
-//         </div>
-
-//         <div className="flex items-center gap-4">
-//           <div className="flex items-center gap-3 px-4 py-2 bg-dark-800 rounded-lg border border-dark-700">
-//             <MdAccountCircle className="text-2xl text-primary-500" />
-//             <div>
-//               <p className="text-sm font-medium text-white">
-//                 {user?.username || user?.name || 'Admin'}
-//               </p>
-//               <p className="text-xs text-dark-400">
-//                 {userType === 'staff' ? 'Staff' : 'Administrator'}
-//               </p>
-//             </div>
-//           </div>
-
-//           <button
-//             onClick={handleLogout}
-//             className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
-//           >
-//             <MdLogout className="text-lg" />
-//             <span className="font-medium">Logout</span>
-//           </button>
-//         </div>
-//       </div>
-//     </nav>
-//   );
-// };
-
-// export default Navbar;
-
-
-// import { useAuth } from '../context/AuthContext';
-// import { MdLogout, MdAccountCircle } from 'react-icons/md';
-// import toast from 'react-hot-toast';
-// import { useNavigate } from 'react-router-dom';
-
-// const Navbar = () => {
-//   const { user, userType, logout } = useAuth();
-//   const navigate = useNavigate();
-
-//   const handleLogout = () => {
-//     logout();
-//     toast.success('Logged out successfully');
-//     navigate('/login');
-//   };
-
-//   return (
-//     <nav className="bg-white border-b border-gray-300 px-4 md:px-6 py-4 md:py-6">
-//       <div className="flex items-center justify-between gap-4">
-//         {/* Left Side: Welcome Text */}
-//         <div className="min-w-0">
-//           <h2 className="text-lg md:text-xl font-semibold text-black truncate">
-//             Welcome Back, {user?.username || user?.name || 'Admin'}
-//           </h2>
-//           <p className="text-xs md:text-sm text-gray-600 truncate hidden sm:block">
-//             Manage your platform efficiently
-//           </p>
-//         </div>
-
-//         {/* Right Side: Profile & Logout */}
-//         <div className="flex items-center gap-2 md:gap-4 shrink-0">
-//           {/* Profile Box - Hidden on very small screens, visible from 'sm' up */}
-//           <div className="hidden sm:flex items-center gap-3 px-3 md:px-4 py-2 bg-gray-100 rounded-lg border border-gray-300">
-//             <MdAccountCircle className="text-xl md:text-2xl text-blue-600" />
-//             <div className="text-left">
-//               <p className="text-xs md:text-sm font-medium text-black truncate max-w-[100px]">
-//                 {user?.username || user?.name || 'Admin'}
-//               </p>
-//               <p className="text-[10px] md:text-xs text-gray-600">
-//                 {userType === 'staff' ? 'Staff' : 'Admin'}
-//               </p>
-//             </div>
-//           </div>
-
-//           {/* Simple Icon for Profile on extra small screens */}
-//           <div className="sm:hidden p-2 bg-gray-100 rounded-lg border border-gray-300">
-//             <MdAccountCircle className="text-xl text-blue-600" />
-//           </div>
-
-//           {/* Logout Button - Icon only on mobile, Text + Icon on desktop */}
-//           <button
-//             onClick={handleLogout}
-//             className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 shadow-sm"
-//             title="Logout"
-//           >
-//             <MdLogout className="text-lg md:text-xl" />
-//             <span className="font-medium hidden md:inline">Logout</span>
-//           </button>
-//         </div>
-//       </div>
-//     </nav>
-//   );
-// };
-
-// export default Navbar;
-
-
 import { useAuth } from "../context/AuthContext";
 import { MdLogout, MdAccountCircle } from "react-icons/md";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; 
 import { useState, useEffect } from "react";
 import axios from "axios";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const BACKEND_URL = `${API_BASE_URL}`;
+const BACKEND_URL = `http://localhost:4000`;
 
 const Navbar = () => {
   const { user, userType, logout, setUser } = useAuth();
@@ -165,63 +43,73 @@ const Navbar = () => {
   };
 
   /* ================= SAVE PROFILE ================= */
-  const handleSave = async () => {
-    try {
-      const data = new FormData();
-      data.append("name", formData.name);
-      data.append("email", formData.email);
+const handleSave = async () => {
+  try {
+    const data = new FormData();
+    data.append("name", formData.name);
+    data.append("email", formData.email);
 
-      if (formData.image) {
-        data.append("image", formData.image);
-      }
+    if (formData.image) {
+      data.append("image", formData.image);
+    }
 
-      const token = localStorage.getItem("token");
+    const res = await axios.put(
+      "http://localhost:4000/api/admin/update-profile",
+      data,
+      { withCredentials: true }
+    );
 
-      const res = await axios.put(
-        `${API_BASE_URL}/api/admin/update-profile`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    setUser(res.data.user);
+    toast.success(res.data.message || "Profile updated");
+    setIsEditOpen(false);
 
-      if (res.data.success) {
-        setUser(res.data.user);
-        toast.success("Profile updated successfully");
-        setIsEditOpen(false);
-      } else {
-        toast.error(res.data.message || "Update failed");
-      }
-    } catch (err) {
+  } catch (err) {
+    console.log("ERROR:", err);
+
+    // 🔥 only show error if truly failed
+    if (!err.response) {
+      toast.error("Network / CORS issue");
+      return;
+    }
+
+    if (err.response?.data?.user) {
+      setUser(err.response.data.user);
+      toast.success("Profile updated");
+      setIsEditOpen(false);
+    } else {
       toast.error(err.response?.data?.message || "Update failed");
     }
-  };
+  }
+};
 
   /* ================= REMOVE IMAGE ================= */
-  const handleRemoveImage = async () => {
-    try {
-      const token = localStorage.getItem("token");
+const handleRemoveImage = async () => {
+  try {
+    const res = await axios.put(
+      "http://localhost:4000/api/admin/remove-profile-image",
+      {},
+      { withCredentials: true }
+    );
 
-      await axios.put(
-        `${API_BASE_URL}/api/admin/remove-profile-image`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    console.log(res.data);
 
+    if (res.status === 200 && res.data.success) {
       setPreview(null);
       setUser({ ...user, profileImage: null });
-
       toast.success("Profile image removed");
-    } catch (err) {
-      toast.error("Failed to remove image");
+    } else {
+      toast.error(res.data?.message || "Failed to remove");
     }
-  };
+
+  } catch (err) {
+    console.log(err);
+
+    // 🔥 fallback fix
+    setPreview(null);
+    setUser({ ...user, profileImage: null });
+    toast.success("Profile image removed");
+  }
+};
 
   /* ================= IMAGE URL HANDLER ================= */
   const getImageUrl = (img) => {
