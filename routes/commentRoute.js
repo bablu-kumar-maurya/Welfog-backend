@@ -779,7 +779,64 @@ router.get("/admin/users/:userid/liked-comments", adminAuth , async (req, res) =
   }
 });
 
+router.post("/check-seller-connection", async (req, res) => {
+  try {
+    const { seller_id, reelId } = req.body;
 
+    if (!seller_id || !reelId) {
+      return res.status(400).json({
+        message: "seller_id and reelId are required"
+      });
+    }
+
+    // 🔍 Reel find karo
+    const reel = await Reel2.findById(reelId);
+
+    if (!reel) {
+      return res.status(404).json({
+        message: "Reel not found"
+      });
+    }
+
+    // 🔥 check karo seller match karta hai ya nahi
+    if (reel.seller_id !== seller_id) {
+      return res.status(400).json({
+        message: "Invalid Id",
+        isConnected: false
+      });
+    }
+
+    // 🔍 Seller (user) find karo
+    const seller = await User.findOne({ seller_id });
+
+    if (!seller) {
+      return res.status(404).json({
+        message: "Seller not found" ,
+         isConnected: false
+      });
+    }
+
+    // ✅ final check: connected hai ya nahi
+    if (seller.isConnected) {
+      return res.status(200).json({
+        message: "Play Id is connected",
+        isConnected: true
+      });
+    } else {
+      return res.status(200).json({
+        message: "Playid is not connected",
+        isConnected: false
+      });
+    }
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Wrong Play Id",
+      isConnected: false
+    });
+  }
+});
 
 
 module.exports = router;

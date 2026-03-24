@@ -87,10 +87,7 @@ router.get(
   }
 );
 
-
 //  GET ROLE BY ID
-
-
 router.get("/:id", adminAuth, checkPermission("ADD_ROLE", "EDIT_ROLE", "DELETE_ROLE"), async (req, res) => {
   try {
     const admin = await getSuperAdmin();
@@ -112,7 +109,6 @@ router.get("/:id", adminAuth, checkPermission("ADD_ROLE", "EDIT_ROLE", "DELETE_R
 
 
 // ✅ CREATE ROLE
-
 router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
   try {
     const { name, permissions } = req.body;
@@ -189,7 +185,6 @@ router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
 
 //✅ UPDATE ROLE
 
-
 router.put("/:id", adminAuth, checkPermission("EDIT_ROLE"), async (req, res) => {
   try {
     const { name, permissions } = req.body;
@@ -258,10 +253,7 @@ router.put("/:id", adminAuth, checkPermission("EDIT_ROLE"), async (req, res) => 
   }
 });
 
-
-
 //✅ DELETE ROLE
-
 
 router.delete("/:id", adminAuth, checkPermission("DELETE_ROLE"), async (req, res) => {
   try {
@@ -436,9 +428,6 @@ router.post(
           message: "Role not found",
         });
       }
-
-      // ❌ bcrypt.hash REMOVED
-      // ✅ password plain rakho (model pre-save hash karega)
 
       const staff = await Staff.create({
         name,
@@ -677,5 +666,8 @@ router.get("/staffs/:id", adminAuth, checkPermission("VIEW_STAFFS"), async (req,
     res.status(400).json({ message: "Invalid staff id" });
   }
 });
+
+
+
 
 module.exports = router;

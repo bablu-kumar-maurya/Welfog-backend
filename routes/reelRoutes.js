@@ -2333,7 +2333,7 @@ router.put("/block/:id",   async (req, res) => {
     });
 
 
-    router.put("/admin_block/:id", adminAuth,
+ router.put("/admin_block/:id", adminAuth,
     checkPermission("BLOCK_REEL"), async (req, res) => {
         try {
             const { id } = req.params;

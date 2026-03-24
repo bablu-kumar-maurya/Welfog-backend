@@ -6,8 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 const adminAuth = async (req, res, next) => {
   try {
-    // ✅ FIX: Pehle cookie se token uthayega, fir header se
-    // Isse browser (cookie) aur mobile/postman (header) dono support honge
+    
     const token = req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
 
     if (!token) {

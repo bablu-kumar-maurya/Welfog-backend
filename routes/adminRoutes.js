@@ -210,6 +210,7 @@ router.post("/login", async (req, res) => {
     });
   }
 });
+
 router.get("/verify", adminAuth, async (req, res) => {
   try {
     const userObj = req.user?.toObject ? req.user.toObject() : req.user;
@@ -353,6 +354,7 @@ router.post("/refresh", async (req, res) => {
     return res.status(401).json({ message: "Refresh token expired or invalid" });
   }
 });
+
 router.post("/logout", adminAuth, async (req, res) => {
   try {
     // ✅ FIX: Cookie se refresh token lo delete karne ke liye

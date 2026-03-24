@@ -3,7 +3,7 @@ import axios from "axios";
 
 // ✅ Global configuration for Cookies
 axios.defaults.withCredentials = true;
-const API_BASE_URL = "https://api.welfog.com";
+const API_BASE_URL = "http://localhost:4000";
 
 const AuthContext = createContext();
 
