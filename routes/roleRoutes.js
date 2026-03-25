@@ -87,7 +87,7 @@ router.get(
   }
 );
 
-//  GET ROLE BY ID
+// GET ROLE BY ID
 router.get("/:id", adminAuth, checkPermission("ADD_ROLE", "EDIT_ROLE", "DELETE_ROLE"), async (req, res) => {
   try {
     const admin = await getSuperAdmin();
@@ -182,9 +182,7 @@ router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
 });
 
 
-
 //✅ UPDATE ROLE
-
 router.put("/:id", adminAuth, checkPermission("EDIT_ROLE"), async (req, res) => {
   try {
     const { name, permissions } = req.body;
@@ -253,8 +251,8 @@ router.put("/:id", adminAuth, checkPermission("EDIT_ROLE"), async (req, res) => 
   }
 });
 
-//✅ DELETE ROLE
 
+//✅ DELETE ROLE
 router.delete("/:id", adminAuth, checkPermission("DELETE_ROLE"), async (req, res) => {
   try {
     const admin = await getSuperAdmin();
@@ -318,6 +316,7 @@ router.delete("/:id", adminAuth, checkPermission("DELETE_ROLE"), async (req, res
     res.status(500).json({ message: "Failed to delete role" });
   }
 });
+
 
 // ✅ GET ALL STAFFS
 router.get(
@@ -388,6 +387,7 @@ router.get(
     }
   }
 );
+
 
 //✅ CREATE STAFF
 router.post(
@@ -496,6 +496,7 @@ router.post(
     }
   }
 );
+
 
 //✅ DELETE STAFF
 router.delete(

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-// 🔐 Embedded Role Schema
+
 const roleSchema = new mongoose.Schema(
   {
     name: {
@@ -16,7 +16,7 @@ const roleSchema = new mongoose.Schema(
   },
   {
     _id: true,
-    timestamps: true, // ✅ THIS LINE FIXES EVERYTHING
+    timestamps: true, 
   }
 );
 

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.welfog.app",
+      "sha256_cert_fingerprints":
+        ["A3:10:D9:5F:68:1E:20:F4:10:E2:C0:33:07:9F:A7:FC:5E:BD:30:6D:BE:65:4C:9A:9C:AA:46:EC:69:47:49:E2",
+         "72:F5:61:85:AE:E9:D8:38:D9:58:59:94:28:A4:7A:DE:1B:F0:4E:F7:99:78:76:EB:B0:99:90:3A:CC:AC:3E:69"]
+    }
+  }
+]
