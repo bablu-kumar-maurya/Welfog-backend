@@ -12,8 +12,6 @@ const getSuperAdmin = async () => {
   return await Admin.findOne({ role: "superadmin" });
 };
 
-
-
 // GET ALL ROLES
 
 router.get(
@@ -45,7 +43,7 @@ router.get(
       // ✅ SEARCH FILTER
       if (search.trim() !== "") {
         roles = roles.filter((r) =>
-          r?.name?.toLowerCase().includes(search.toLowerCase())
+          r?.name?.toLowerCase().includes(search.toLowerCase()),
         );
       }
 
@@ -77,36 +75,38 @@ router.get(
         totalPages,
         totalItems,
       });
-
     } catch (error) {
       console.error("Failed to load roles:", error);
       error.statusCode = error.statusCode || 500;
       await logError(req, error);
       res.status(500).json({ message: "Failed to load roles" });
     }
-  }
+  },
 );
 
-// GET ROLE BY ID
-router.get("/:id", adminAuth, checkPermission("ADD_ROLE", "EDIT_ROLE", "DELETE_ROLE"), async (req, res) => {
-  try {
-    const admin = await getSuperAdmin();
-    if (!admin) {
-      return res.status(404).json({ message: "Superadmin not found" });
+// GET ROLE BY ID (edit)
+router.get(
+  "/:id",
+  adminAuth,
+  checkPermission("ADD_ROLE", "EDIT_ROLE", "DELETE_ROLE"),
+  async (req, res) => {
+    try {
+      const admin = await getSuperAdmin();
+      if (!admin) {
+        return res.status(404).json({ message: "Superadmin not found" });
+      }
+
+      const role = admin.roles.id(req.params.id);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      res.json(role);
+    } catch {
+      res.status(400).json({ message: "Invalid role id" });
     }
-
-    const role = admin.roles.id(req.params.id);
-    if (!role) {
-      return res.status(404).json({ message: "Role not found" });
-    }
-
-    res.json(role);
-  } catch {
-    
-    res.status(400).json({ message: "Invalid role id" });
-  }
-});
-
+  },
+);
 
 // ✅ CREATE ROLE
 router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
@@ -123,7 +123,7 @@ router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
     }
 
     const exists = admin.roles.find(
-      (r) => r.name.toLowerCase() === name.toLowerCase()
+      (r) => r.name.toLowerCase() === name.toLowerCase(),
     );
 
     if (exists) {
@@ -161,10 +161,7 @@ router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
 
         device: req.headers["user-agent"],
         location: {
-          ip:
-            req.headers["x-forwarded-for"] ||
-            req.socket.remoteAddress ||
-            "",
+          ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
           country: req.headers["cf-ipcountry"] || "",
         },
       });
@@ -181,142 +178,145 @@ router.post("/", adminAuth, checkPermission("ADD_ROLE"), async (req, res) => {
   }
 });
 
-
 //✅ UPDATE ROLE
-router.put("/:id", adminAuth, checkPermission("EDIT_ROLE"), async (req, res) => {
-  try {
-    const { name, permissions } = req.body;
-
-    const admin = await getSuperAdmin();
-    if (!admin) {
-      return res.status(404).json({ message: "Superadmin not found" });
-    }
-
-    const role = admin.roles.id(req.params.id);
-    if (!role) {
-      return res.status(404).json({ message: "Role not found" });
-    }
-
-    // 🔹 snapshot old values (for activity log)
-    const oldRoleData = {
-      name: role.name,
-      permissions: role.permissions,
-    };
-
-    // 🔄 update
-    role.name = name ?? role.name;
-    role.permissions = permissions ?? role.permissions;
-
-    await admin.save();
-
-    // ✅ ACTIVITY LOG (EDIT ROLE)
+router.put(
+  "/:id",
+  adminAuth,
+  checkPermission("EDIT_ROLE"),
+  async (req, res) => {
     try {
-      await logUserAction({
-        user: req.user._id,
-        userName: req.userName,
-        userRole: req.userRole,
+      const { name, permissions } = req.body;
 
-        action: "edit_role",
+      const admin = await getSuperAdmin();
+      if (!admin) {
+        return res.status(404).json({ message: "Superadmin not found" });
+      }
 
-        targetType: "Role",
-        targetId: role._id,
-        targetName: `Role: ${role.name}`,
-        metadata: {
-          old: oldRoleData,
-          updated: {
-            name: role.name,
-            permissions: role.permissions,
+      const role = admin.roles.id(req.params.id);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      // 🔹 snapshot old values (for activity log)
+      const oldRoleData = {
+        name: role.name,
+        permissions: role.permissions,
+      };
+
+      // 🔄 update
+      role.name = name ?? role.name;
+      role.permissions = permissions ?? role.permissions;
+
+      await admin.save();
+
+      // ✅ ACTIVITY LOG (EDIT ROLE)
+      try {
+        await logUserAction({
+          user: req.user._id,
+          userName: req.userName,
+          userRole: req.userRole,
+
+          action: "edit_role",
+
+          targetType: "Role",
+          targetId: role._id,
+          targetName: `Role: ${role.name}`,
+          metadata: {
+            old: oldRoleData,
+            updated: {
+              name: role.name,
+              permissions: role.permissions,
+            },
           },
-        },
 
-        device: req.headers["user-agent"],
-        location: {
-          ip:
-            req.headers["x-forwarded-for"] ||
-            req.socket.remoteAddress ||
-            "",
-          country: req.headers["cf-ipcountry"] || "",
-        },
-      });
-    } catch (e) {
-      console.error("Edit role log error:", e.message);
+          device: req.headers["user-agent"],
+          location: {
+            ip:
+              req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
+            country: req.headers["cf-ipcountry"] || "",
+          },
+        });
+      } catch (e) {
+        console.error("Edit role log error:", e.message);
+      }
+
+      res.json({ message: "Role updated successfully" });
+    } catch (error) {
+      console.error("Update role error:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
+      res.status(500).json({ message: "Failed to update role" });
     }
-
-    res.json({ message: "Role updated successfully" });
-  } catch (error) {
-    console.error("Update role error:", error);
-    error.statusCode = error.statusCode || 500;
-    await logError(req, error);
-    res.status(500).json({ message: "Failed to update role" });
-  }
-});
-
+  },
+);
 
 //✅ DELETE ROLE
-router.delete("/:id", adminAuth, checkPermission("DELETE_ROLE"), async (req, res) => {
-  try {
-    const admin = await getSuperAdmin();
-    if (!admin) {
-      return res.status(404).json({ message: "Superadmin not found" });
-    }
-
-    const role = admin.roles.id(req.params.id);
-    if (!role) {
-      return res.status(404).json({ message: "Role not found" });
-    }
-
-    // 🔹 snapshot before delete (for logs)
-    const deletedRoleData = {
-      _id: role._id,
-      name: role.name,
-      permissions: role.permissions,
-    };
-
-    // ❌ remove role
-    admin.roles = admin.roles.filter(
-      (r) => r._id.toString() !== req.params.id
-    );
-
-    await admin.save();
-
-    // ✅ ACTIVITY LOG (DELETE ROLE)
+router.delete(
+  "/:id",
+  adminAuth,
+  checkPermission("DELETE_ROLE"),
+  async (req, res) => {
     try {
-      await logUserAction({
-        user: req.user._id,
-        userName: req.userName,
-        userRole: req.userRole,
+      const admin = await getSuperAdmin();
+      if (!admin) {
+        return res.status(404).json({ message: "Superadmin not found" });
+      }
 
-        action: "delete_role",
+      const role = admin.roles.id(req.params.id);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
 
-        targetType: "Role",
-        targetId: deletedRoleData._id,
-        targetName: `Role: ${role.name}`,
-        metadata: {
-          deleted: deletedRoleData,
-        },
+      // 🔹 snapshot before delete (for logs)
+      const deletedRoleData = {
+        _id: role._id,
+        name: role.name,
+        permissions: role.permissions,
+      };
 
-        device: req.headers["user-agent"],
-        location: {
-          ip:
-            req.headers["x-forwarded-for"] ||
-            req.socket.remoteAddress ||
-            "",
-          country: req.headers["cf-ipcountry"] || "",
-        },
-      });
-    } catch (e) {
-      console.error("Delete role log error:", e.message);
+      // ❌ remove role
+      admin.roles = admin.roles.filter(
+        (r) => r._id.toString() !== req.params.id,
+      );
+
+      await admin.save();
+
+      // ✅ ACTIVITY LOG (DELETE ROLE)
+      try {
+        await logUserAction({
+          user: req.user._id,
+          userName: req.userName,
+          userRole: req.userRole,
+
+          action: "delete_role",
+
+          targetType: "Role",
+          targetId: deletedRoleData._id,
+          targetName: `Role: ${role.name}`,
+          metadata: {
+            deleted: deletedRoleData,
+          },
+
+          device: req.headers["user-agent"],
+          location: {
+            ip:
+              req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
+            country: req.headers["cf-ipcountry"] || "",
+          },
+        });
+      } catch (e) {
+        console.error("Delete role log error:", e.message);
+      }
+
+      res.json({ message: "Role deleted successfully" });
+    } catch (error) {
+      console.error("Delete role error:", error);
+      error.statusCode = error.statusCode || 500;
+      await logError(req, error);
+      res.status(500).json({ message: "Failed to delete role" });
     }
-
-    res.json({ message: "Role deleted successfully" });
-  } catch (error) {
-    console.error("Delete role error:", error);
-    error.statusCode = error.statusCode || 500;
-    await logError(req, error);
-    res.status(500).json({ message: "Failed to delete role" });
-  }
-});
-
+  },
+);
 
 // ✅ GET ALL STAFFS
 router.get(
@@ -342,7 +342,7 @@ router.get(
         filter.$or = [
           { name: { $regex: search, $options: "i" } },
           { email: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } }
+          { phone: { $regex: search, $options: "i" } },
         ];
       }
 
@@ -376,18 +376,16 @@ router.get(
         totalItems,
         totalPages: Math.ceil(totalItems / limit),
         page,
-        limit
+        limit,
       });
-
     } catch (error) {
       console.error("Error loading staffs:", error);
       error.statusCode = error.statusCode || 500;
       await logError(req, error);
       res.status(500).json({ message: "Failed to load staffs" });
     }
-  }
+  },
 );
-
 
 //✅ CREATE STAFF
 router.post(
@@ -441,7 +439,6 @@ router.post(
         userType: "staff",
       });
 
-
       try {
         await logUserAction({
           user: req.user._id,
@@ -465,9 +462,7 @@ router.post(
           device: req.headers["user-agent"],
           location: {
             ip:
-              req.headers["x-forwarded-for"] ||
-              req.socket.remoteAddress ||
-              "",
+              req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
             country: req.headers["cf-ipcountry"] || "",
           },
         });
@@ -494,9 +489,8 @@ router.post(
         message: "Failed to create staff",
       });
     }
-  }
+  },
 );
-
 
 //✅ DELETE STAFF
 router.delete(
@@ -529,7 +523,7 @@ router.delete(
 
           targetType: "Staff",
           targetId: staff._id,
-          
+
           // 🔥 FIXED: role.name ki jagah staff.role.name use kiya hai
           targetName: `Staff: ${staff.name} (${staff.role?.name || "No Role"})`,
 
@@ -542,9 +536,7 @@ router.delete(
           device: req.headers["user-agent"],
           location: {
             ip:
-              req.headers["x-forwarded-for"] ||
-              req.socket.remoteAddress ||
-              "",
+              req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
             country: req.headers["cf-ipcountry"] || "",
           },
         });
@@ -565,11 +557,10 @@ router.delete(
         message: "Failed to delete staff",
       });
     }
-  }
+  },
 );
 
-
-// edit the staff 
+// edit the staff
 router.put(
   "/staffs/:id",
   adminAuth,
@@ -631,9 +622,7 @@ router.put(
           device: req.headers["user-agent"],
           location: {
             ip:
-              req.headers["x-forwarded-for"] ||
-              req.socket.remoteAddress ||
-              "",
+              req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
             country: req.headers["cf-ipcountry"] || "",
           },
         });
@@ -647,28 +636,29 @@ router.put(
       await logError(req, error);
       res.status(500).json({ message: "Failed to update staff" });
     }
-  }
+  },
 );
 
-
 //GET SINGLE STAFF (FOR EDIT)
-router.get("/staffs/:id", adminAuth, checkPermission("VIEW_STAFFS"), async (req, res) => {
-  try {
-    const staff = await Staff.findById(req.params.id);
+router.get(
+  "/staffs/:id",
+  adminAuth,
+  checkPermission("VIEW_STAFFS"),
+  async (req, res) => {
+    try {
+      const staff = await Staff.findById(req.params.id);
 
-    if (!staff) {
-      return res.status(404).json({ message: "Staff not found" });
+      if (!staff) {
+        return res.status(404).json({ message: "Staff not found" });
+      }
+
+      res.json(staff);
+    } catch (err) {
+      await logError(req, err);
+      err.statusCode = err.statusCode || 500;
+      res.status(400).json({ message: "Invalid staff id" });
     }
-
-    res.json(staff);
-  } catch (err) {
-    await logError(req, err);
-    err.statusCode = err.statusCode || 500;
-    res.status(400).json({ message: "Invalid staff id" });
-  }
-});
-
-
-
+  },
+);
 
 module.exports = router;
