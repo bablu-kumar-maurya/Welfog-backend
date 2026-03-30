@@ -1702,4 +1702,42 @@ function getCategoryFromAction(action) {
   return "other";
 }
 
+
+// ✅ ISSE FILE MEIN SABSE UPAR RAKHO (Before any router.put("/:id"))
+router.put("/action/disconnect-seller", async (req, res) => {
+  try {
+    const { seller_id } = req.body;
+
+    if (!seller_id) {
+      return res.status(400).json({ message: "Seller ID is required" });
+    }
+
+    // 🔍 Find by seller_id and Clear all fields
+    const updatedUser = await User.findOneAndUpdate(
+      { seller_id: seller_id }, 
+      { 
+        $set: { 
+          seller_id: "",      // ✅ Ab ye bhi empty ho jayega
+          userseller_id: "", 
+          isConnected: false 
+        } 
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found with this seller_id" });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Seller disconnected and IDs cleared", 
+      data: updatedUser 
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 module.exports = router;
