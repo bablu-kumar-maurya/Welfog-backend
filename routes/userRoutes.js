@@ -1104,7 +1104,20 @@ router.put("/:id", async (req, res) => {
     if (name) user.name = name;
     if (profilePicture) user.profilePicture = profilePicture;
     if (bio) user.bio = bio;
-    if (typeof isSuspended === "boolean") user.isSuspended = isSuspended;
+    if (typeof isSuspended === "boolean") {
+      user.isSuspended = isSuspended;
+
+      if (isSuspended) {
+        user.suspendReason = suspendReason || "No reason provided";
+        user.suspendedBy = req.user._id;
+        user.suspendedAt = new Date();
+      } else {
+        // reactivate pe clear kar sakta hai (optional)
+        user.suspendReason = "";
+        user.suspendedBy = null;
+        user.suspendedAt = null;
+      }
+    }
 
     if (email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1206,6 +1219,7 @@ router.put(
       currentPassword,
       newPassword,
       isSuspended,
+      suspendReason,
     } = req.body;
 
     try {
@@ -1235,7 +1249,20 @@ router.put(
       if (name) user.name = name;
       if (profilePicture) user.profilePicture = profilePicture;
       if (bio) user.bio = bio;
-      if (typeof isSuspended === "boolean") user.isSuspended = isSuspended;
+      if (typeof isSuspended === "boolean") {
+        user.isSuspended = isSuspended;
+
+        if (isSuspended) {
+          user.suspendReason = suspendReason || "No reason provided";
+          user.suspendedBy = req.userName;
+          user.suspendedAt = new Date();
+        } else {
+          // reactivate pe clear kar sakta hai (optional)
+          user.suspendReason = "";
+          user.suspendedBy = null;
+          user.suspendedAt = null;
+        }
+      }
 
       // Validate email
       if (email) {
@@ -1273,7 +1300,9 @@ router.put(
 
             // ✅ DUSRA ADD: Target Name pass kiya dashboard ke liye
             targetName: targetUserName,
-
+            metadata: {
+              reason: suspendReason || "",
+            },
             device: req.headers["user-agent"],
             location: {
               ip:
@@ -1307,6 +1336,9 @@ router.put(
     }
   },
 );
+
+
+
 
 // Get comprehensive user activity details
 router.get("/:id/activity", adminAuth, async (req, res) => {
@@ -1702,8 +1734,58 @@ function getCategoryFromAction(action) {
   return "other";
 }
 
+router.post("/external/suspend-user", async (req, res) => {
+  try {
+    const { userId, isSuspended, reason, suspendedBy } = req.body;
 
-// ✅ ISSE FILE MEIN SABSE UPAR RAKHO (Before any router.put("/:id"))
+    if (!userId) {
+      return res.status(400).json({ message: "userId required" });
+    }
+
+const user = await User.findOne({ userid: userId });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (typeof isSuspended === "boolean") {
+      user.isSuspended = isSuspended;
+
+      if (isSuspended) {
+        user.suspendReason = reason || "No reason provided";
+        user.suspendedBy = suspendedBy || "external_admin";
+        user.suspendedAt = new Date();
+      } else {
+        user.suspendReason = "";
+        user.suspendedBy = null;
+        user.suspendedAt = null;
+      }
+    }
+
+    await user.save();
+
+    // 🔥 log bhi kar
+    await logUserAction({
+      user: suspendedBy || "external",
+      action: isSuspended ? "account_suspended" : "account_reactivated",
+      targetType: "User",
+      targetId: user._id,
+      targetName: user.username,
+      metadata: {
+        reason: reason || "",
+        source: "shopping_app"
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `User ${isSuspended ? "suspended" : "activated"} successfully`,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 router.put("/action/disconnect-seller", async (req, res) => {
   try {
     const { seller_id } = req.body;
@@ -1714,27 +1796,28 @@ router.put("/action/disconnect-seller", async (req, res) => {
 
     // 🔍 Find by seller_id and Clear all fields
     const updatedUser = await User.findOneAndUpdate(
-      { seller_id: seller_id }, 
-      { 
-        $set: { 
-          seller_id: "",      // ✅ Ab ye bhi empty ho jayega
-          userseller_id: "", 
-          isConnected: false 
-        } 
+      { seller_id: seller_id },
+      {
+        $set: {
+          seller_id: "", // ✅ Ab ye bhi empty ho jayega
+          userseller_id: "",
+          isConnected: false,
+        },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: "User not found with this seller_id" });
+      return res
+        .status(404)
+        .json({ message: "User not found with this seller_id" });
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Seller disconnected and IDs cleared", 
-      data: updatedUser 
+    res.status(200).json({
+      success: true,
+      message: "Seller disconnected and IDs cleared",
+      data: updatedUser,
     });
-
   } catch (error) {
     console.error("Update error:", error);
     res.status(500).json({ message: "Internal server error" });

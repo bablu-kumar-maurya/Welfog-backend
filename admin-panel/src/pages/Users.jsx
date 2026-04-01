@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdSearch,
@@ -9,8 +9,8 @@ import {
   MdCheckCircle,
   MdPerson,
   MdDelete, // Imported Delete Icon
-} from 'react-icons/md';
-import toast from 'react-hot-toast';
+} from "react-icons/md";
+import toast from "react-hot-toast";
 
 const Users = () => {
   const navigate = useNavigate();
@@ -20,18 +20,18 @@ const Users = () => {
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [suspendModal, setSuspendModal] = useState(null);
+  const [suspendReason, setSuspendReason] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null); // State for delete confirmation
   const topRef = useRef(null);
   const [filters, setFilters] = useState({
     search: "",
     status: "",
     startDate: "",
-    endDate: ""
+    endDate: "",
   });
 
   const limit = 15;
-
-
 
   useEffect(() => {
     fetchUsers();
@@ -40,8 +40,8 @@ const Users = () => {
   useEffect(() => {
     if (topRef.current) {
       topRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
+        behavior: "smooth",
+        block: "start",
       });
     }
   }, [page]);
@@ -52,72 +52,84 @@ const Users = () => {
 
       const { search, status, startDate, endDate } = filters;
 
-      const response = await axios.get(`http://localhost:4000/api/users/admin_users`, {
-        params: {
-          page,
-          limit,
-          search,
-          status,
-          startDate,
-          endDate
+      const response = await axios.get(
+        `http://localhost:4000/api/users/admin_users`,
+        {
+          params: {
+            page,
+            limit,
+            search,
+            status,
+            startDate,
+            endDate,
+          },
+          withCredentials: true,
         },
-           withCredentials: true 
-      });
+      );
 
       setUsers(response.data.data);
       setTotalUsers(response.data.total);
     } catch (error) {
-      toast.error('Permission denied');
+      toast.error("Permission denied");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSuspendToggle = async (userId, currentStatus) => {
-    try {
-      await axios.put(`http://localhost:4000/api/users/admin_users/${userId}`, {
+const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
+  try {
+    await axios.put(
+      `http://localhost:4000/api/users/admin_users/${userId}`,
+      {
         isSuspended: !currentStatus,
-           withCredentials: true 
-      });
+        suspendReason: reason, // ✅ NEW
+      },
+      {
+        withCredentials: true,
+      }
+    );
 
-      toast.success(
-        `User ${!currentStatus ? 'suspended' : 'activated'} successfully`
-      );
+    toast.success(
+      `User ${!currentStatus ? 'suspended' : 'activated'} successfully`
+    );
 
-      // ✅ Just call without params
-      fetchUsers();
+    setSuspendModal(null);
+    setSuspendReason("");
 
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Permission denied');
-    }
-  };
+    fetchUsers();
+  } catch (error) {
+    console.error(error);
+    toast.error(error.response?.data?.message || 'Permission denied');
+  }
+};
 
   // NEW: Delete User Function
   const handleDeleteUser = async (userId) => {
     try {
-      await axios.delete(`http://localhost:4000/api/users/admin_users/${userId}` , {
-           withCredentials: true 
-      });
+      await axios.delete(
+        `http://localhost:4000/api/users/admin_users/${userId}`,
+        {
+          withCredentials: true,
+        },
+      );
 
-      toast.success('User and all related data deleted successfully');
+      toast.success("User and all related data deleted successfully");
 
       setConfirmDelete(null);
 
       // ✅ Correct call (no params)
       fetchUsers();
-
     } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete user');
+      console.error("Error deleting user:", error);
+      toast.error(error.response?.data?.message || "Failed to delete user");
     }
   };
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
 
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
     setPage(1);
@@ -145,9 +157,7 @@ const Users = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Users
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Users</h1>
           <p className="text-gray-500">
             Manage all registered users ({totalUsers})
           </p>
@@ -157,10 +167,11 @@ const Users = () => {
       {/* Search Bar */}
       {/* FILTER BAR */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-4 items-end">
-
         {/* Search */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">Search</label>
+          <label className="text-[10px] font-bold uppercase text-gray-400">
+            Search
+          </label>
           <input
             type="text"
             name="search"
@@ -173,7 +184,9 @@ const Users = () => {
 
         {/* Status */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">Status</label>
+          <label className="text-[10px] font-bold uppercase text-gray-400">
+            Status
+          </label>
           <select
             name="status"
             value={filters.status}
@@ -188,7 +201,9 @@ const Users = () => {
 
         {/* From */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">From</label>
+          <label className="text-[10px] font-bold uppercase text-gray-400">
+            From
+          </label>
           <input
             type="date"
             name="startDate"
@@ -200,7 +215,9 @@ const Users = () => {
 
         {/* To */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">To</label>
+          <label className="text-[10px] font-bold uppercase text-gray-400">
+            To
+          </label>
           <input
             type="date"
             name="endDate"
@@ -217,7 +234,7 @@ const Users = () => {
               search: "",
               status: "",
               startDate: "",
-              endDate: ""
+              endDate: "",
             });
             setPage(1);
           }}
@@ -225,7 +242,6 @@ const Users = () => {
         >
           Reset
         </button>
-
       </div>
 
       {/* Loader */}
@@ -269,7 +285,6 @@ const Users = () => {
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
                   Actions
                 </th>
-
               </tr>
             </thead>
 
@@ -294,7 +309,7 @@ const Users = () => {
                       )}
                       <div>
                         <p className="text-gray-900 font-medium">
-                          {user.name || 'No name'}
+                          {user.name || "No name"}
                         </p>
                         <p className="text-gray-500 text-sm">
                           @{user.username}
@@ -309,9 +324,7 @@ const Users = () => {
                   <td className="px-6 py-4">
                     <p className="text-gray-700 text-sm">{user.mobile}</p>
                     {user.email && (
-                      <p className="text-gray-500 text-xs">
-                        {user.email}
-                      </p>
+                      <p className="text-gray-500 text-xs">{user.email}</p>
                     )}
                   </td>
 
@@ -320,7 +333,7 @@ const Users = () => {
                       <p className="text-gray-700">
                         <span className="text-blue-600">
                           {user.followers?.length || 0}
-                        </span>{' '}
+                        </span>{" "}
                         followers
                       </p>
                       <p className="text-gray-500">
@@ -340,12 +353,13 @@ const Users = () => {
 
                   <td className="px-6 py-4">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${user.isSuspended
-                        ? 'bg-red-600/20 text-red-600'
-                        : 'bg-green-600/20 text-green-600'
-                        }`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        user.isSuspended
+                          ? "bg-red-600/20 text-red-600"
+                          : "bg-green-600/20 text-green-600"
+                      }`}
                     >
-                      {user.isSuspended ? 'Suspended' : 'Active'}
+                      {user.isSuspended ? "Suspended" : "Active"}
                     </span>
                   </td>
 
@@ -363,14 +377,21 @@ const Users = () => {
                         <MdVisibility />
                       </button>
                       <button
-                        onClick={() =>
-                          handleSuspendToggle(user._id, user.isSuspended)
-                        }
-                        className={`p-2 rounded-lg transition-colors ${user.isSuspended
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                          }`}
-                        title={user.isSuspended ? 'Activate' : 'Suspend'}
+                        onClick={() => {
+                          if (user.isSuspended) {
+                            // direct activate (no reason needed)
+                            handleSuspendToggle(user._id, user.isSuspended);
+                          } else {
+                            // open modal for suspend
+                            setSuspendModal(user);
+                          }
+                        }}
+                        className={`p-2 rounded-lg transition-colors ${
+                          user.isSuspended
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-yellow-500 hover:bg-yellow-600 text-white"
+                        }`}
+                        title={user.isSuspended ? "Activate" : "Suspend"}
                       >
                         {user.isSuspended ? <MdCheckCircle /> : <MdBlock />}
                       </button>
@@ -402,10 +423,8 @@ const Users = () => {
         </button>
 
         <span className="text-sm text-gray-600">
-          Page <span className="text-gray-900">{page}</span> of{' '}
-          <span className="text-gray-900">
-            {Math.ceil(totalUsers / limit)}
-          </span>
+          Page <span className="text-gray-900">{page}</span> of{" "}
+          <span className="text-gray-900">{Math.ceil(totalUsers / limit)}</span>
         </span>
 
         <button
@@ -422,9 +441,7 @@ const Users = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white border border-gray-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">
-                User Details
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900">User Details</h2>
             </div>
 
             <div className="p-6 space-y-4">
@@ -442,11 +459,9 @@ const Users = () => {
                 )}
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900">
-                    {selectedUser.name || 'No name'}
+                    {selectedUser.name || "No name"}
                   </h3>
-                  <p className="text-gray-500">
-                    @{selectedUser.username}
-                  </p>
+                  <p className="text-gray-500">@{selectedUser.username}</p>
                 </div>
               </div>
 
@@ -457,9 +472,7 @@ const Users = () => {
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Email</p>
-                  <p className="text-gray-900">
-                    {selectedUser.email || 'N/A'}
-                  </p>
+                  <p className="text-gray-900">{selectedUser.email || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Followers</p>
@@ -476,15 +489,13 @@ const Users = () => {
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Status</p>
                   <p className="text-gray-900">
-                    {selectedUser.isSuspended ? 'Suspended' : 'Active'}
+                    {selectedUser.isSuspended ? "Suspended" : "Active"}
                   </p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Joined</p>
                   <p className="text-gray-900">
-                    {new Date(
-                      selectedUser.createdAt
-                    ).toLocaleDateString()}
+                    {new Date(selectedUser.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -492,9 +503,7 @@ const Users = () => {
               {selectedUser.bio && (
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Bio</p>
-                  <p className="text-gray-900">
-                    {selectedUser.bio}
-                  </p>
+                  <p className="text-gray-900">{selectedUser.bio}</p>
                 </div>
               )}
             </div>
@@ -519,10 +528,14 @@ const Users = () => {
               <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MdDelete size={32} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete User?</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Delete User?
+              </h3>
               <p className="text-gray-500 mb-6">
-                Are you sure you want to delete <span className="font-semibold">@{confirmDelete.username}</span>?
-                This will permanently remove their profile, reels, comments, and all related data. This action cannot be undone.
+                Are you sure you want to delete{" "}
+                <span className="font-semibold">@{confirmDelete.username}</span>
+                ? This will permanently remove their profile, reels, comments,
+                and all related data. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
@@ -542,6 +555,58 @@ const Users = () => {
           </div>
         </div>
       )}
+
+      {suspendModal && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+    <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+      <h3 className="text-xl font-bold mb-3 text-gray-900">
+        Suspend User
+      </h3>
+
+      <p className="text-gray-500 mb-4">
+        Why are you suspending <b>@{suspendModal.username}</b>?
+      </p>
+
+      <textarea
+        value={suspendReason}
+        onChange={(e) => setSuspendReason(e.target.value)}
+        placeholder="Enter reason..."
+        className="w-full border border-gray-300 rounded-lg p-2 mb-4 outline-none focus:ring-2 focus:ring-red-500"
+        rows={3}
+      />
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            setSuspendModal(null);
+            setSuspendReason("");
+          }}
+          className="flex-1 bg-gray-100 py-2 rounded-lg"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => {
+            if (!suspendReason.trim()) {
+              toast.error("Please enter reason");
+              return;
+            }
+
+            handleSuspendToggle(
+              suspendModal._id,
+              suspendModal.isSuspended,
+              suspendReason
+            );
+          }}
+          className="flex-1 bg-red-600 text-white py-2 rounded-lg"
+        >
+          Confirm Suspend
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

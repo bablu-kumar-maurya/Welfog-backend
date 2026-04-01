@@ -22,7 +22,7 @@ const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const createNotification = require("../utils/createNotification");
 const logError = require("../utils/logError");
-
+const { generateShortLink } = require("../utils/shortLink");
 // ---------- Adaptive compressor (paste after ffmpeg.setFfmpegPath(...)) ----------
 async function compressVideo(inputPath, outputPath) {
     const metadata = await new Promise((resolve, reject) => {
@@ -580,26 +580,33 @@ async function processReelUpload(jobData) {
         newReelId = savedReel._id;
 
         // Step 4.5: Generate and save short link for sharing
-        try {
-            const uploaderUser = await User.findOne({
-                $or: [{ userid: userid }, { _id: user }]
-            });
-            if (uploaderUser) {
-                const { slug, shortLink } = generateShortLink(savedReel._id, userid);
-                savedReel.shortLinks.push({
-                    slug,
-                    shortLink,
-                    generatedForUser: uploaderUser._id,
-                    generatedAt: new Date()
-                });
-                await savedReel.save();
-                console.log(`[STEP 4.5] Short link generated and saved: ${shortLink}`);
-            }
-        } catch (shortLinkError) {
-            shortLinkError.statusCode = shortLinkError.statusCode || 500;
-            await logError(req, shortLinkError);
-            console.warn("[WARNING] Failed to generate short link (non-blocking):", shortLinkError.message);
-        }
+     try {
+    const uploaderUser = await User.findById(user); // ✅ direct DB se lo
+
+    if (uploaderUser) {
+        const realUserId = uploaderUser.userid; // ✅ always correct (UUID ya number jo bhi ho)
+
+        const { slug, shortLink } = generateShortLink(
+            savedReel._id,
+            realUserId
+        );
+
+        savedReel.shortLinks.push({
+            slug,
+            shortLink,
+            generatedForUser: uploaderUser._id,
+            generatedAt: new Date()
+        });
+
+        await savedReel.save();
+
+        console.log(`[STEP 4.5] Short link generated and saved: ${shortLink}`);
+    }
+} catch (shortLinkError) {
+    shortLinkError.statusCode = shortLinkError.statusCode || 500;
+    await logError(req, shortLinkError);
+    console.warn("[WARNING] Failed to generate short link (non-blocking):", shortLinkError.message);
+}
 
         console.log("[STEP 5] Generating HLS segments with multiple quality variants...");
         const hlsDir = path.join(os.tmpdir(), `hls-${newReelId}`);
@@ -1773,7 +1780,7 @@ router.get("/others/:userId", async (req, res) => {
     }
 });
 
-     
+
 //delete video
 
 router.delete("/delete/:reelId/:userid", async (req, res) => {
@@ -2106,154 +2113,6 @@ router.get("/totalviews",adminAuth ,  async (req, res) => {
     }
 });
 
-function generateShortLink(reelId, userId) {
-    const slug = `${reelId}-${encodeURIComponent(userId)}`;
-    const BASE_URL = process.env.BASE_URL || "http://localhost:4000";
-    const shortLink = `${BASE_URL}/api/reels/r/${slug}`;
-    return { slug, shortLink };
-}
-
-router.get('/deeplink-test.html', (req, res) => {
-    res.sendFile(path.join(DESKTOP, 'deeplink-test.html'));
-});
-
-router.get('/r/:slug', async (req, res) => {
-    try {
-        const { slug } = req.params;
-
-        // ✅ FULL reelId + UUID safe
-        const match = slug.match(/^([a-f0-9]{24})-(.+)$/i);
-        if (!match) {
-            return res.status(400).send("Invalid slug format");
-        }
-
-        const reelId = match[1];
-        const ownerUserId = decodeURIComponent(match[2]);
-
-        const reel = await Reel.findById(reelId);
-        if (!reel) return res.status(404).send("Reel not found");
-
-        if (reel.userid !== ownerUserId) {
-            return res.status(404).send("Invalid user");
-        }
-
-        return res.redirect(
-            `${process.env.BASE_URL}/api/reels/dl/reel/${reel._id}/user/${reel.userid}`
-        );
-
-    } catch (err) {
-        console.error("Error in /r/:slug →", err);
-        err.statusCode = err.statusCode || 500;
-        await logError(req, err);
-        res.status(500).send("Server error");
-    }
-});
-
-router.get('/dl/reel/:reelId/user/:userId', (req, res) => {
-    const { reelId, userId } = req.params;
-
-    const deepLink = `welfog://Play/sepreel/${reelId}?u=${userId}`;
-
-    // ✅ Play Store URL with Install Referrer (ENCODED)
-    const playStoreUrl =
-        `https://play.google.com/store/apps/details?id=com.parm27.welfog` +
-        `&referrer=${encodeURIComponent(`reelId=${reelId}&userId=${userId}`)}`;
-
-    const html = `
-<html>
-<head>
-<script>
-    let openApp = true;
-
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) openApp = false;
-    });
-
-    // Try to open app
-    window.location.href = "${deepLink}";
-
-    // Fallback to Play Store with referrer
-    setTimeout(() => {
-        if (openApp) window.location.href = "${playStoreUrl}";
-    }, 3000);
-</script>
-</head>
-<body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial;text-align:center;">
-    Opening WELFOG App...<br><br>
-    If not installed, Play Store will open.
-</body>
-</html>
-    `;
-
-    res.send(html);
-});
-
-router.get('/reel/:reelId/share/:userId', async (req, res) => {
-    try {
-        const { reelId } = req.params;
-
-        const reel = await Reel.findById(reelId);
-        if (!reel) return res.status(404).send("Reel not found");
-
-        // ✅ OWNER userid use
-        const { slug, shortLink } = generateShortLink(
-            reel._id,
-            reel.userid
-        );
-
-        // ✅ sirf ek hi shortLink rakho
-        if (!reel.shortLinks || reel.shortLinks.length === 0) {
-            reel.shortLinks.push({
-                slug,
-                shortLink,
-                generatedForUser: reel.user, // owner ObjectId
-                generatedAt: new Date()
-            });
-            await reel.save();
-        }
-
-        return res.json({ shortLink });
-
-    } catch (error) {
-        console.error("Error generating short link →", error);
-        error.statusCode = error.statusCode || 500;
-        await logError(req, error);
-        return res.status(500).send("Server error");
-    }
-});
-
-router.get('/admin/fix-shortlinks-v2', async (req, res) => {
-    try {
-        const reels = await Reel.find({}, { _id: 1, userid: 1, user: 1 });
-
-        for (const reel of reels) {
-            const slug = `${reel._id}-${encodeURIComponent(reel.userid)}`;
-            const shortLink = `https://api.welfog.com/api/reels/r/${slug}`;
-
-            await Reel.updateOne(
-                { _id: reel._id },
-                {
-                    $set: {
-                        shortLinks: [{
-                            slug,
-                            shortLink,
-                            generatedForUser: reel.user,
-                            generatedAt: new Date()
-                        }]
-                    }
-                }
-            );
-        }
-
-        res.send("✅ All shortLinks upgraded to FULL reelId");
-
-    } catch (err) {
-        console.error(err);
-        err.statusCode = err.statusCode || 500;
-        await logError(req, err);
-        res.status(500).send("Migration error");
-    }
-});
 
 //  ADMIN: BLOCK / UNBLOCK REEL
 router.put("/block/:id",   async (req, res) => {

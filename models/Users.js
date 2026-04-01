@@ -17,13 +17,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "",
     unique: true, // Ek seller_id sirf ek user ki ho sakti hai
-    sparse: true  // Bahut zaroori! Taaki jinke paas ID nahi hai (empty string), unme conflict na ho
+    sparse: true, // Bahut zaroori! Taaki jinke paas ID nahi hai (empty string), unme conflict na ho
   },
   userseller_id: {
     type: String,
     default: "",
     unique: true, // Ek userseller_id sirf ek user ki ho sakti hai
-    sparse: true  // Taaki multiple empty strings allow ho sakein
+    sparse: true, // Taaki multiple empty strings allow ho sakein
   },
 
   name: { type: String, default: "" },
@@ -37,16 +37,33 @@ const userSchema = new mongoose.Schema({
   // User Schema (User4) mein ye add karein:
   isConnected: {
     type: Boolean,
-    default: false
+    default: false,
   },
   lastConnectedAt: {
-    type: Date
+    type: Date,
+  },
+  suspendReason: {
+    type: String,
+    default: "",
+  },
+
+  suspendReason: {
+    type: String,
+    default: "",
+  },
+
+
+  suspendedBy: {
+    type: String,
+    ref: "Admin",
+  },
+  suspendedAt: {
+    type: Date,
   },
   bio: { type: String, default: "" },
   isSuspended: { type: Boolean, required: true, default: false },
   createdAt: { type: Date, default: Date.now },
 });
-
 
 // ================= SYNC USER DATA TO REELS =================
 
@@ -73,10 +90,7 @@ userSchema.pre("save", async function (next) {
 
     if (!Object.keys(update).length) return next();
 
-    const result = await Reel.updateMany(
-      { user: this._id },
-      { $set: update }
-    );
+    const result = await Reel.updateMany({ user: this._id }, { $set: update });
 
     console.log("✅ Reels matched:", result.matchedCount);
     console.log("✅ Reels modified:", result.modifiedCount);
@@ -87,7 +101,6 @@ userSchema.pre("save", async function (next) {
     next(err);
   }
 });
-
 
 // ================= GENERATE UNIQUE USERNAME =================
 
@@ -103,7 +116,6 @@ userSchema.statics.generateUniqueUsername = async function () {
 
   return newUsername;
 };
-
 
 // ================= SYNC USERID ACROSS MODELS =================
 
@@ -122,7 +134,7 @@ userSchema.pre("save", async function (next) {
     for (const Model of updateModels) {
       await Model.updateMany(
         { uploadedBy: this._id },
-        { $set: { userid: this.userid } }
+        { $set: { userid: this.userid } },
       );
     }
 
