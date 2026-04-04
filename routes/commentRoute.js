@@ -8,9 +8,11 @@ const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logUserAction = require("../utils/logUserAction");
 const logError = require("../utils/logError");
+
 router.post("/new", async (req, res) => {
   try {
-    const { user: userId, reel: reelId, text, parentComment } = req.body;
+    console.log("🔥 NEW COMMENT API HIT");
+    const { user: userId, reel: reelId, text, parentComment: incomingParentId } = req.body;
 
     if (!userId || !reelId || !text) {
       return res.status(400).json({
@@ -18,111 +20,119 @@ router.post("/new", async (req, res) => {
       });
     }
 
-    // ✅ Fetch commenter
-    const user = await User.findById(userId);
+    // ✅ Fetch user
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ message: "User not found" });
-    if (!user.userid) return res.status(500).json({ message: "User.userid missing" });
+
+    if (!user.userid) {
+      return res.status(500).json({ message: "User.userid missing" });
+    }
 
     if (user.isSuspended) {
       return res.status(200).json({
-        message: "Comment ignored"
+        message: "Comment ignored",
       });
     }
 
     // ✅ Fetch reel
     const reelData = await Reel2.findById(reelId);
     if (!reelData) return res.status(404).json({ message: "Reel not found" });
-    if (!reelData.userid) return res.status(500).json({ message: "Reel.userid missing" });
 
+    if (!reelData.userid) {
+      return res.status(500).json({ message: "Reel.userid missing" });
+    }
+
+    // 🔥 FIX: Hierarchical Logic
+    // Agar koi reply aa raha hai, toh check karo ki kya wo kisi reply ka reply hai?
+    // Hum hamesha "Root Parent" (Main Comment) ki ID hi save karenge.
+    let finalParentId = null;
+    if (incomingParentId) {
+      const parentDoc = await Comment.findById(incomingParentId);
+      if (parentDoc) {
+        // Agar parentDoc khud ek reply hai (matlab uska apna parentComment hai),
+        // toh hum uske asli "Baap" (Root Comment) ki ID use karenge.
+        finalParentId = parentDoc.parentComment ? parentDoc.parentComment : parentDoc._id;
+      }
+    }
+
+    // ✅ Create comment
     const comment = new Comment({
-      user: userId,            // ObjectId
-      reel: reelId,            // ObjectId
+      user: userId,
+      reel: reelId,
       text,
-      parentComment: parentComment || null,
+      parentComment: finalParentId, // Ab ye hamesha Main Comment ki ID hogi
     });
-
 
     const savedComment = await comment.save();
 
+    // 🔥 Response object manually build karna (Jaisa aapne manga tha)
+    const finalComment = {
+      _id: savedComment._id,
+      text: savedComment.text,
+      reel: savedComment.reel,
+      parentComment: savedComment.parentComment,
+      likes: savedComment.likes || [],
+      createdAt: savedComment.createdAt,
+      updatedAt: savedComment.updatedAt,
+      user: {
+        _id: user._id,
+        username: user.username || "User",
+        profilePicture: user.profilePicture || "",
+        userid: user.userid,
+      },
+    };
 
+    // ✅ Save comment ID in reel
     reelData.comments.push(savedComment._id);
     await reelData.save();
 
-    // try {
-    //   await logUserAction({
-    //     user: user._id,
-    //     userName: user.username || user.name || "User",
-    //     userRole: "user", // 🔥 app user rule
-
-    //     action: parentComment ? "reply_comment" : "comment",
-    //     targetType: "Reel",
-    //     targetId: reelId,
-
-    //     device: req.headers["user-agent"],
-    //     location: {
-    //       ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
-    //       country: req.headers["cf-ipcountry"] || "",
-    //     },
-    //   });
-    // } catch (logErr) {
-    //   console.error("Comment log error:", logErr.message);
-    // }
-
-    // 4️⃣ CREATE COMMENT / REPLY NOTIFICATION
+    // ================= NOTIFICATION =================
     try {
-
-      // 🔹 CASE 1: MAIN COMMENT
-      if (!parentComment) {
+      if (!incomingParentId) {
+        // Direct comment on Reel
         await createNotification({
-          recipientObjectId: reelData.user,   // reel owner
+          recipientObjectId: reelData.user,
           senderObjectId: user._id,
           recipientUserId: reelData.userid,
           senderUserId: user.userid,
           type: "comment",
           reel: reelId,
           comment: savedComment._id,
-          message: `commented on your reel: "${savedComment.text}"`
+          message: `commented on your reel: "${savedComment.text}"`,
         });
-      }
+      } else {
+        // Reply Notification - Hum notification usko bhejenge jiske comment par 'Reply' click kiya gaya tha
+        const targetComment = await Comment.findById(incomingParentId).populate("user");
 
-      // 🔹 CASE 2: REPLY TO COMMENT
-      else {
-        const parent = await Comment.findById(parentComment).populate("user");
-
-        // ✅ parent comment not found → just skip notification
-        if (!parent || !parent.user) {
-          console.log("Parent comment or user missing, skip reply notification");
-        }
-        // ✅ self reply → skip notification
-        else if (parent.user._id.toString() === userId.toString()) {
-          console.log("Self reply detected, skip notification");
-        }
-        else {
+        if (
+          targetComment &&
+          targetComment.user &&
+          targetComment.user._id.toString() !== userId.toString()
+        ) {
           await createNotification({
-            recipientObjectId: parent.user._id,   // 👈 parent comment owner
+            recipientObjectId: targetComment.user._id,
             senderObjectId: user._id,
-            recipientUserId: parent.user.userid,
+            recipientUserId: targetComment.user.userid,
             senderUserId: user.userid,
             type: "comment",
             reel: reelId,
             comment: savedComment._id,
-            message: `replied: "${savedComment.text}"`
+            message: `replied to your comment: "${savedComment.text}"`,
           });
         }
       }
-
     } catch (err) {
       console.error("Notification error:", err.message);
     }
 
-
-    // 5️⃣ Response
-    return res.status(201).json(savedComment);
+    console.log("FINAL RESPONSE:", finalComment);
+    return res.status(201).json(finalComment);
 
   } catch (error) {
     console.error("Comment creation error:", error);
     error.statusCode = error.statusCode || 500;
-    await logError(req, error);
+    // await logError(req, error); // Agar logError function hai toh enable rakhein
+
     return res.status(500).json({
       message: "Error occurred in Comment creation",
     });
@@ -174,21 +184,26 @@ router.get("/",  async (req, res) => {
 
     const totalComments = await Comment.countDocuments(query);
 
-    const comments = await Comment.find(query)
-      .populate("user", "userid username name profilePicture")
-      .populate("reel", "caption")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+ // 1. Fetch more than the limit temporarily to account for filtered nulls
+const rawComments = await Comment.find(query)
+  .populate("user", "userid username name profilePicture")
+  .populate("reel", "caption")
+  .sort({ createdAt: -1 })
+  .skip(skip)
+  .limit(limit);
 
-    res.status(200).json({
-      success: true,
-      page,
-      limit,
-      totalComments,
-      totalPages: Math.ceil(totalComments / limit),
-      comments,
-    });
+// 2. 🔥 EXACT FIX: Filter out comments where user is null
+const validComments = rawComments.filter(comment => comment.user !== null);
+
+// 3. Send the filtered list
+res.status(200).json({
+  success: true,
+  page,
+  limit,
+  totalComments,
+  totalPages: Math.ceil(totalComments / limit),
+  comments: validComments, // ✅ This ensures no "null" users reach your app
+});
 
   } catch (error) {
     console.error("Error fetching comments:", error);

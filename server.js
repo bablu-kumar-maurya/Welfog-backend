@@ -51,6 +51,7 @@ const adminRoute = require("./routes/adminRoutes");
 const roleRoutes = require("./routes/roleRoutes");
 const shareRoutes = require("./routes/shareRoutes");
 const suspendRoutes = require("./routes/suspendRoutes");
+const uploadRoute = require("./routes/uploadRoute");
 app.use("/api/users", userRoutes);
 app.use("/api/reels", reelRoute);
 app.use("/api/music", musicRoute);
@@ -60,6 +61,7 @@ app.use("/api/admin", adminRoute);
 app.use("/api/roles", roleRoutes);
 app.use("/api/plays", shareRoutes); 
 app.use("/api/suspend", suspendRoutes);
+app.use("/api/uploads", uploadRoute);
 
 app.get("/", (req, res) => {
   res.json({

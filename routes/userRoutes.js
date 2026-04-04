@@ -16,6 +16,7 @@ const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logError = require("../utils/logError");
 const axios = require("axios");
+
 // create new user
 
 router.post("/", async (req, res) => {
@@ -1337,9 +1338,6 @@ router.put(
   },
 );
 
-
-
-
 // Get comprehensive user activity details
 router.get("/:id/activity", adminAuth, async (req, res) => {
   try {
@@ -1823,4 +1821,6 @@ router.put("/action/disconnect-seller", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+
 module.exports = router;
