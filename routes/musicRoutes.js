@@ -8,6 +8,8 @@ const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logUserAction = require("../utils/logUserAction");
 const logError = require("../utils/logError");
+
+
 router.get("/search", async (req, res) => {
   const { q } = req.query;
   if (!q) return res.json([]);
@@ -59,6 +61,7 @@ router.get("/search", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch music" });
   }
 });
+
 
 router.get("/searchindb", async (req, res) => {
   try {

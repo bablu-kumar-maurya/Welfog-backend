@@ -586,18 +586,39 @@ router.put("/update/:id", async (req, res) => {
 
 
 
+
 // GET comments for a reel
 router.get('/reel/:reelId', async (req, res) => {
   try {
     const reelId = req.params.reelId;
+    const viewerId = req.query.viewerId; // 🔥 ADDED: Frontend se viewer ki ID mangwao
 
-    const comments = await Comment.find({ reel: reelId, parentComment: null })
+    // 🛡️ BLOCK FILTER LOGIC START
+    let blockedList = [];
+    if (viewerId) {
+        const viewer = await User.findById(viewerId).select("blockedUsers");
+        if (viewer && viewer.blockedUsers) {
+            blockedList = viewer.blockedUsers;
+        }
+    }
+    // 🛡️ BLOCK FILTER LOGIC END
+
+    // ✅ Step 1: Fetch Main Comments (Filtered by blocked users)
+    const comments = await Comment.find({ 
+        reel: reelId, 
+        parentComment: null,
+        user: { $nin: blockedList } // 🔥 ADDED: Blocked logo ke main comments hide karo
+    })
       .populate('user', 'username profilePicture')
       .sort({ createdAt: -1 });
 
     const commentsWithReplies = await Promise.all(
       comments.map(async (comment) => {
-        const replies = await Comment.find({ parentComment: comment._id })
+        // ✅ Step 2: Fetch Replies (Filtered by blocked users)
+        const replies = await Comment.find({ 
+            parentComment: comment._id,
+            user: { $nin: blockedList } // 🔥 ADDED: Blocked logo ke replies bhi hide karo
+        })
           .populate('user', 'username profilePicture')
           .sort({ createdAt: 1 });
 
@@ -605,12 +626,12 @@ router.get('/reel/:reelId', async (req, res) => {
       })
     );
 
-    return res.status(200).json(commentsWithReplies); // ✅ return here to prevent further execution
+    return res.status(200).json(commentsWithReplies);
   } catch (error) {
     console.error("Error fetching comments:", error);
-    error.statusCode = error.statusCode || 500;
-  await logError(req, error);
-    // ✅ Don't send response if already sent
+    if (typeof logError === 'function') {
+        await logError(req, error);
+    }
     if (!res.headersSent) {
       return res.status(500).json({ message: "Internal Server Error" });
     }
@@ -618,13 +639,11 @@ router.get('/reel/:reelId', async (req, res) => {
 });
 
 
-
 // comment like dislike
 router.put("/like/:id", async (req, res) => {
   try {
     const { userId } = req.body;
     const commentId = req.params.id;
-
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -639,11 +658,30 @@ router.put("/like/:id", async (req, res) => {
         message: "Like ignored"
       });
     }
+
     // 🔹 Fetch comment with user populated
     const comment = await Comment.findById(commentId).populate("user");
     if (!comment) {
       return res.status(404).json({ message: "Comment not found" });
     }
+
+    // 🔥 ADDED: 🛡️ BLOCK CHECK START 🛡️
+    if (comment.user) {
+      // 1. Kya Comment Owner ne Liker (viewer) ko block kiya hai?
+      const isBlockedByOwner = comment.user.blockedUsers?.some(
+        (bid) => bid.toString() === userId.toString()
+      );
+
+      // 2. Kya Liker (viewer) ne Comment Owner ko block kiya hai?
+      const isBlockedByLiker = user.blockedUsers?.some(
+        (bid) => bid.toString() === comment.user._id.toString()
+      );
+
+      if (isBlockedByOwner || isBlockedByLiker) {
+        return res.status(403).json({ message: "Action not allowed due to privacy settings." });
+      }
+    }
+    // 🔥 ADDED: 🛡️ BLOCK CHECK END 🛡️
 
     const alreadyLiked = comment.likes.includes(userId);
 
@@ -654,27 +692,6 @@ router.put("/like/:id", async (req, res) => {
       );
       await comment.save();
 
-      // try {
-      //   await logUserAction({
-      //     user: user._id,
-      //     userName: user.username || user.name || "User",
-      //     userRole: "user", // 🔥 app user rule
-
-      //     action: "unlike_comment",
-      //     targetType: "Comment",
-      //     targetId: comment._id,
-
-      //     device: req.headers["user-agent"],
-      //     location: {
-      //       ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
-      //       country: req.headers["cf-ipcountry"] || "",
-      //     },
-      //   });
-      // } catch (logErr) {
-      //   console.error("Unlike comment log error:", logErr.message);
-      // }
-
-
       return res.status(200).json({
         message: "Comment unliked",
         likes: comment.likes.length
@@ -684,26 +701,6 @@ router.put("/like/:id", async (req, res) => {
     // ❤️ LIKE
     comment.likes.push(userId);
     await comment.save();
-
-    // try {
-    //   await logUserAction({
-    //     user: user._id,
-    //     userName: user.username || user.name || "User",
-    //     userRole: "user", // 🔥 app user rule
-
-    //     action: "like_comment",
-    //     targetType: "Comment",
-    //     targetId: comment._id,
-
-    //     device: req.headers["user-agent"],
-    //     location: {
-    //       ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
-    //       country: req.headers["cf-ipcountry"] || "",
-    //     },
-    //   });
-    // } catch (logErr) {
-    //   console.error("Like comment log error:", logErr.message);
-    // }
 
     // 🔔 CREATE NOTIFICATION (ONLY IF NOT SELF-LIKE)
     if (comment.user && comment.user._id.toString() !== userId.toString()) {
@@ -732,8 +729,10 @@ router.put("/like/:id", async (req, res) => {
 
   } catch (error) {
     console.error("Error in liking comment:", error);
-    error.statusCode = error.statusCode || 500;
+    // Fixed the variable name 'error' to match catch
+    if (typeof logError === 'function') {
       await logError(req, error);
+    }
     res.status(500).json({ message: "Something went wrong" });
   }
 });

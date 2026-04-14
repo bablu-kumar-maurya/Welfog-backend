@@ -30,6 +30,9 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   mobile: { type: String, required: true, unique: true },
   email: { type: String, default: "" },
+  
+  blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User4" }],
+
   profilePicture: { type: String, default: "" },
 
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User4" }],

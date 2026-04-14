@@ -331,9 +331,44 @@ router.get("/search_populer", async (req, res) => {
     const userSkip = (userPage - 1) * userLimit;
     const videoSkip = (videoPage - 1) * videoLimit;
 
+    // 🔥 ADDED: Viewer ID fetch karna, Blocked List, aur Not Interested List nikalna
+    const viewerId = req.query.viewerId;
+    let blockedList = [];
+    let notInterestedReelsList = []; // 🔥 Naya Array Add Kiya
+
+    if (viewerId) {
+      try {
+        // 1. Fetch Viewer for Blocked List
+        const viewer = await User.findById(viewerId).select("blockedUsers");
+        if (viewer && viewer.blockedUsers) {
+          blockedList = viewer.blockedUsers;
+        }
+
+        // 🔥 2. Fetch Not Interested Reels
+        const notInterestedDocs = await ReelInteraction.find({
+          user: viewerId,
+          action: "not_interested"
+        }).select("reel").lean();
+        
+        if(notInterestedDocs.length > 0) {
+            notInterestedReelsList = notInterestedDocs.map(doc => doc.reel);
+        }
+
+      } catch (err) {
+        console.error(
+          "Invalid Viewer ID or error fetching viewer details:",
+          err.message,
+        );
+      }
+    }
+
     // ✅ CASE 1: When query is EMPTY → Show Explore page (Trending Videos Only)
     if (!query) {
-      const videos = await Reel.find({ status: "Published" })
+      const videos = await Reel.find({
+        status: "Published",
+        user: { $nin: blockedList }, // Blocked users ki reels hide
+        _id: { $nin: notInterestedReelsList } // 🔥 ADDED: Not Interested reels hide
+      })
         .select(
           "userid username name videoUrl thumbnailUrl caption likes views createdAt music",
         )
@@ -368,6 +403,7 @@ router.get("/search_populer", async (req, res) => {
       users = await User.aggregate([
         {
           $match: {
+            _id: { $nin: blockedList }, // Blocked users ko search se hide
             $or: [
               { username: { $regex: query, $options: "i" } },
               // { name: { $regex: query, $options: "i" } },
@@ -417,6 +453,8 @@ router.get("/search_populer", async (req, res) => {
       videos = await Reel.find({
         $or: videoQuery,
         status: "Published",
+        user: { $nin: blockedList }, // Blocked users ki videos search se hide
+        _id: { $nin: notInterestedReelsList } // 🔥 ADDED: Not Interested reels hide
       })
         .select(
           "userid username name videoUrl thumbnailUrl caption likes views createdAt music",
@@ -451,15 +489,28 @@ router.get("/search_populer", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const viewerId = req.query.viewerId;
 
-    // ✅ Fetch user by userid
+    // 1. Fetch user
     const user = await User.findOne({ userid: id }).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Count reels by user ObjectId (safer)
+    // 2. 🛡️ Block Check Logic (Solid Version)
+    if (viewerId) {
+      const viewer = await User.findById(viewerId).select("blockedUsers");
+
+      // .some() aur .toString() use karna best practice hai IDs ke liye
+      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(bid => bid.toString() === user._id.toString());
+      const hasTargetBlockedViewer = user.blockedUsers?.some(bid => bid.toString() === viewerId.toString());
+
+      if (hasViewerBlockedTarget || hasTargetBlockedViewer) {
+        return res.status(404).json({ message: "User not found" });
+      }
+    }
+
+    // 3. Post count & Response
     const postCount = await Reel.countDocuments({ user: user._id });
 
-    // ✅ Return user info + post count
     res.json({
       _id: user._id,
       userid: user.userid,
@@ -469,10 +520,6 @@ router.get("/:id", async (req, res) => {
       email: user.email,
       profilePicture: user.profilePicture,
       bio: user.bio,
-      isConnected: user.isConnected || false,
-      seller_id: user.seller_id || "",
-      userseller_id: user.userseller_id || "",
-      lastConnectedAt: user.lastConnectedAt,
       followers: user.followers,
       following: user.following,
       isSuspended: user.isSuspended,
@@ -481,15 +528,19 @@ router.get("/:id", async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching user data:", err);
-    err.statusCode = err.statusCode || 500;
-    await logError(req, error);
+    // ✅ FIX: 'error' ko 'err' kiya taaki crash na ho
+    if (typeof logError === 'function') {
+      await logError(req, err); 
+    }
     res.status(500).json({ message: "Server error" });
   }
 });
+
 // get user posts with pagination
 router.get("/userpost/:id", async (req, res) => {
   try {
     const userId = req.params.id;
+const viewerId = req.query.viewerId; // 🔥 Jo dekh raha hai (Frontend se aayega)
 
     // Get pagination parameters from query string
     let limit = parseInt(req.query.limit) || 12; // default to 10
@@ -502,6 +553,19 @@ router.get("/userpost/:id", async (req, res) => {
     // Step 1: Fetch user (excluding passwordHash)
     const user = await User.findById(userId).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
+
+if (viewerId) {
+      const viewer = await User.findById(viewerId).select("blockedUsers");
+
+      // Check dono taraf se: Kya viewer ne use block kiya ya usne viewer ko?
+      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(bid => bid.toString() === userId);
+      const hasTargetBlockedViewer = user.blockedUsers?.some(bid => bid.toString() === viewerId);
+
+      if (hasViewerBlockedTarget || hasTargetBlockedViewer) {
+        // Reels hide karne ke liye hum empty response bhej sakte hain ya 404
+        return res.status(404).json({ message: "User not found", reels: [], postCount: 0 });
+      }
+    }
 
     // Step 2: Get total count of reels
     const totalCount = await Reel.countDocuments({ user: userId });
@@ -529,6 +593,7 @@ router.get("/userpost/:id", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 router.get("/admin_userpost/:id", adminAuth, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -599,6 +664,7 @@ router.get("/:userid/followers", adminAuth, async (req, res) => {
     return res.status(500).json({ message: "Error fetching followers" });
   }
 });
+
 // GET all following of a specific user (ADMIN VIEW)
 router.get("/admin/users/:userid/following", adminAuth, async (req, res) => {
   try {
@@ -638,11 +704,23 @@ router.get("/userlikedposts/:id", async (req, res) => {
     if (limit < 1 || limit > 50) limit = 10;
     if (skip < 0) skip = 0;
 
-    // 🔢 TOTAL liked reels count
-    const totalLikes = await Reel.countDocuments({ likes: userId });
+    const viewerId = req.query.viewerId; // Frontend se aayega
+let blockedList = [];
+if (viewerId) {
+    const viewer = await User.findById(viewerId).select("blockedUsers");
+    if (viewer) blockedList = viewer.blockedUsers || [];
+}
 
-    // 📦 Fetch liked reels (paginated)
-    const likedReels = await Reel.find({ likes: userId })
+  const totalLikes = await Reel.countDocuments({ 
+    likes: userId, 
+    user: { $nin: blockedList } // 👈 Ye line add karo
+});
+
+    const likedReels = await Reel.find({ 
+    likes: userId, 
+    user: { $nin: blockedList } // 👈 Ye line add karo
+})
+    
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -675,6 +753,16 @@ router.get("/userfollowing/:id", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const viewerId = req.query.viewerId;
+let blockedList = [];
+if (viewerId) {
+    const viewer = await User.findById(viewerId).select("blockedUsers");
+    if (viewer) {
+        // IDs ko string mein convert kar lo comparison aasaan hoga
+        blockedList = viewer.blockedUsers.map(id => id.toString());
+    }
+}
+
     // 🔹 CLEAN FOLLOWERS
     const validFollowers = await User.find(
       { _id: { $in: user.followers } },
@@ -705,6 +793,18 @@ router.get("/userfollowing/:id", async (req, res) => {
       .populate("followers", "userid username name profilePicture")
       .populate("following", "userid username name profilePicture");
 
+      // 🛡️ Block Filter: Followers aur Following list se blocked users ko hatao
+if (blockedList.length > 0) {
+    // Followers filter karo
+    cleanUser.followers = cleanUser.followers.filter(f => 
+        !blockedList.includes(f._id.toString())
+    );
+    // Following filter karo
+    cleanUser.following = cleanUser.following.filter(f => 
+        !blockedList.includes(f._id.toString())
+    );
+}
+
     res.json(cleanUser);
   } catch (err) {
     console.error("Cleanup error:", err);
@@ -714,18 +814,34 @@ router.get("/userfollowing/:id", async (req, res) => {
   }
 });
 
-// find user by mobile
 router.get("/bymobile/:mobile", async (req, res) => {
   try {
+    const viewerId = req.query.viewerId; // 🔥 Viewer ID frontend se
+
     const user = await User.findOne({ mobile: req.params.mobile }).select(
       "-passwordHash",
     );
 
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 🛡️ BLOCK CHECK START
+    if (viewerId) {
+      const viewer = await User.findById(viewerId).select("blockedUsers");
+      
+      // Dono side se check karo
+      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(bid => bid.toString() === user._id.toString());
+      const hasTargetBlockedViewer = user.blockedUsers?.some(bid => bid.toString() === viewerId.toString());
+
+      if (hasViewerBlockedTarget || hasTargetBlockedViewer) {
+        return res.status(404).json({ message: "User not found" });
+      }
+    }
+    // 🛡️ BLOCK CHECK END
+
     res.json(user);
   } catch (err) {
+    console.error("Error finding user by mobile:", err);
     await logError(req, err);
-    err.statusCode = err.statusCode || 500;
     res.status(500).json({ message: "Server error" });
   }
 });
