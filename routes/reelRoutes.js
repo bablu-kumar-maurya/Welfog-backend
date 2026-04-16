@@ -23,6 +23,7 @@ const checkPermission = require("../middleware/checkPermission");
 const createNotification = require("../utils/createNotification");
 const logError = require("../utils/logError");
 const { generateShortLink } = require("../utils/shortLink");
+const ReelInteraction = require('../models/ReelInteraction');
 // ---------- Adaptive compressor (paste after ffmpeg.setFfmpegPath(...)) ----------
 async function compressVideo(inputPath, outputPath) {
     const metadata = await new Promise((resolve, reject) => {
