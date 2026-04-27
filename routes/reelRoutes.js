@@ -1381,28 +1381,28 @@ router.get(
   }
 );
 
-router.get("/show", async (req, res) => {
-    try {
-        const limit = parseInt(req.query.limit || "1", 10);
-        const exclude = req.query.exclude?.split(",").filter(Boolean) || [];
+// router.get("/show", async (req, res) => {
+//     try {
+//         const limit = parseInt(req.query.limit || "1", 10);
+//         const exclude = req.query.exclude?.split(",").filter(Boolean) || [];
 
-        const matchStage = exclude.length
-            ? { _id: { $nin: exclude.map((id) => new mongoose.Types.ObjectId(id)) } }
-            : {};
+//         const matchStage = exclude.length
+//             ? { _id: { $nin: exclude.map((id) => new mongoose.Types.ObjectId(id)) } }
+//             : {};
 
-        const reels = await Reel.aggregate([
-            { $match: matchStage },
-            { $sample: { size: limit } }, // still returns random reel(s)
-        ]);
+//         const reels = await Reel.aggregate([
+//             { $match: matchStage },
+//             { $sample: { size: limit } }, // still returns random reel(s)
+//         ]);
 
-        return res.status(200).json({ reels });
-    } catch (error) {
-        console.error("Error fetching reels:", error);
-        error.statusCode = error.statusCode || 500;
-        await logError(req, error);
-        return res.status(500).json({ message: "Error fetching reels" });
-    }
-});
+//         return res.status(200).json({ reels });
+//     } catch (error) {
+//         console.error("Error fetching reels:", error);
+//         error.statusCode = error.statusCode || 500;
+//         await logError(req, error);
+//         return res.status(500).json({ message: "Error fetching reels" });
+//     }
+// });
 
 // router.get("/shownew", async (req, res) => {
 //     try {

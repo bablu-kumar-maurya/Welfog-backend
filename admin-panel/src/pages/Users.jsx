@@ -1,16 +1,842 @@
+// import { useState, useEffect, useRef } from "react";
+// import { useNavigate } from "react-router-dom";
+// import axios from "axios";
+// import {
+//   MdSearch,
+//   MdVisibility,
+//   MdBlock,
+//   MdCheckCircle,
+//   MdPerson,
+//   MdDelete,
+//   MdDownload,
+// } from "react-icons/md";
+// import toast from "react-hot-toast";
+
+// // ✅ PDF Imports fixed
+// import { jsPDF } from "jspdf";
+// import autoTable from "jspdf-autotable";
+
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// const Users = () => {
+//   const navigate = useNavigate();
+//   const [users, setUsers] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [selectedUser, setSelectedUser] = useState(null);
+//   const [showModal, setShowModal] = useState(false);
+//   const [page, setPage] = useState(1);
+//   const [totalUsers, setTotalUsers] = useState(0);
+//   const [suspendModal, setSuspendModal] = useState(null);
+//   const [suspendReason, setSuspendReason] = useState("");
+//   const [confirmDelete, setConfirmDelete] = useState(null);
+//   const topRef = useRef(null);
+  
+//   // ✅ Naya state checkboxes ke liye
+//   const [selectedUserIds, setSelectedUserIds] = useState([]);
+
+//   const [filters, setFilters] = useState({
+//     search: "",
+//     status: "",
+//     startDate: "",
+//     endDate: "",
+//   });
+
+//   const limit = 15;
+
+//   useEffect(() => {
+//     fetchUsers();
+//   }, [page, filters]);
+
+//   useEffect(() => {
+//     if (topRef.current) {
+//       topRef.current.scrollIntoView({
+//         behavior: "smooth",
+//         block: "start",
+//       });
+//     }
+//   }, [page]);
+
+//   const fetchUsers = async () => {
+//     try {
+//       setLoading(true);
+
+//       const { search, status, startDate, endDate } = filters;
+
+//       const response = await axios.get(
+//         `http://localhost:4000/api/users/admin_users`,
+//         {
+//           params: {
+//             page,
+//             limit,
+//             search,
+//             status,
+//             startDate,
+//             endDate,
+//           },
+//           withCredentials: true,
+//         },
+//       );
+
+//       setUsers(response.data.data);
+//       setTotalUsers(response.data.total);
+//       setSelectedUserIds([]); // Page change hone par selection clear karna
+//     } catch (error) {
+//       toast.error("Permission denied");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // ✅ Checkbox Select All Handler
+//   const handleSelectAll = (e) => {
+//     if (e.target.checked) {
+//       setSelectedUserIds(users.map((u) => u._id));
+//     } else {
+//       setSelectedUserIds([]);
+//     }
+//   };
+
+//   // ✅ Single Checkbox Handler
+//   const handleSelectUser = (userId) => {
+//     setSelectedUserIds((prev) =>
+//       prev.includes(userId)
+//         ? prev.filter((id) => id !== userId)
+//         : [...prev, userId]
+//     );
+//   };
+
+//   const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
+//     try {
+//       await axios.put(
+//         `http://localhost:4000/api/users/admin_users/${userId}`,
+//         {
+//           isSuspended: !currentStatus,
+//           suspendReason: reason,
+//         },
+//         {
+//           withCredentials: true,
+//         }
+//       );
+
+//       toast.success(
+//         `User ${!currentStatus ? 'suspended' : 'activated'} successfully`
+//       );
+
+//       setSuspendModal(null);
+//       setSuspendReason("");
+
+//       fetchUsers();
+//     } catch (error) {
+//       console.error(error);
+//       toast.error(error.response?.data?.message || 'Permission denied');
+//     }
+//   };
+
+//   const handleDeleteUser = async (userId) => {
+//     try {
+//       await axios.delete(
+//         `http://localhost:4000/api/users/admin_users/${userId}`,
+//         {
+//           withCredentials: true,
+//         },
+//       );
+
+//       toast.success("User and all related data deleted successfully");
+//       setConfirmDelete(null);
+//       fetchUsers();
+//     } catch (error) {
+//       console.error("Error deleting user:", error);
+//       toast.error(error.response?.data?.message || "Failed to delete user");
+//     }
+//   };
+
+//   // ✅ Single User Export
+//   const handleExportUser = (user) => {
+//     try {
+//       const doc = new jsPDF();
+//       const pageWidth = doc.internal.pageSize.getWidth();
+
+//       doc.setFontSize(20);
+//       doc.setTextColor(40, 40, 40);
+//       doc.text("User Profile Report", 14, 22);
+      
+//       doc.setFontSize(10);
+//       doc.setTextColor(100, 100, 100);
+//       doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+      
+//       doc.setDrawColor(200, 200, 200);
+//       doc.line(14, 32, pageWidth - 14, 32);
+
+//       doc.setFillColor(245, 247, 250);
+//       doc.rect(14, 38, pageWidth - 28, 25, 'F');
+      
+//       doc.setFontSize(12);
+//       doc.setTextColor(0, 0, 0);
+//       doc.setFont(undefined, 'bold');
+//       doc.text(user.name || "N/A", 20, 48);
+      
+//       doc.setFontSize(10);
+//       doc.setFont(undefined, 'normal');
+//       doc.setTextColor(100, 100, 100);
+//       doc.text(`@${user.username} | ${user.isSuspended ? 'Status: Suspended' : 'Status: Active'}`, 20, 55);
+
+//       const tableRows = [
+//         ["Full Name", user.name || "N/A"],
+//         ["Username", `@${user.username}` || "N/A"],
+//         ["User ID", user.userid || "N/A"],
+//         ["Mobile Number", user.mobile || "N/A"],
+//         ["Email Address", user.email || "N/A"],
+//         ["Account Status", user.isSuspended ? "Suspended" : "Active"],
+//         ["Joined Date", new Date(user.createdAt).toLocaleDateString()],
+//         ["Followers", user.followers?.length || 0],
+//         ["Following", user.following?.length || 0],
+//         ["Seller ID", user.seller_id || "N/A"],
+//         ["User Seller ID", user.userseller_id || "N/A"],
+//         ["Bio", user.bio || "No bio provided"]
+//       ];
+
+//       autoTable(doc, {
+//         startY: 70,
+//         head: [['Field Name', 'Information']],
+//         body: tableRows,
+//         theme: 'grid',
+//         headStyles: { fillColor: [59, 130, 246], fontSize: 11, halign: 'left' },
+//         styles: { fontSize: 10, cellPadding: 4 },
+//         columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50, fillColor: [250, 250, 250] }, 1: { cellWidth: 'auto' } }
+//       });
+
+//       const finalY = doc.lastAutoTable.finalY + 10;
+//       doc.setFontSize(9);
+//       doc.setTextColor(150, 150, 150);
+//       doc.text("This is an official system generated user data report.", 14, finalY);
+
+//       doc.save(`${user.username || 'user'}_report.pdf`);
+//       toast.success("Professional PDF Report Downloaded!");
+
+//     } catch (error) {
+//       console.error("Export Error:", error);
+//       toast.error("Failed to generate PDF");
+//     }
+//   };
+
+//   // ✅ NAYA LOGIC: Bulk Export for Multiple Users with Following, Seller ID, User Seller ID
+//   const handleBulkExport = () => {
+//     if (selectedUserIds.length === 0) return;
+
+//     try {
+//       // Use landscape mode for better table fit
+//       const doc = new jsPDF('landscape'); 
+//       const pageWidth = doc.internal.pageSize.getWidth();
+
+//       doc.setFontSize(20);
+//       doc.setTextColor(40, 40, 40);
+//       doc.text("Bulk Users Report", 14, 22);
+      
+//       doc.setFontSize(10);
+//       doc.setTextColor(100, 100, 100);
+//       doc.text(`Generated on: ${new Date().toLocaleString()} | Total Selected: ${selectedUserIds.length}`, 14, 28);
+      
+//       doc.setDrawColor(200, 200, 200);
+//       doc.line(14, 32, pageWidth - 14, 32);
+
+//       // Filter only selected users
+//       const selectedUsersData = users.filter((u) => selectedUserIds.includes(u._id));
+
+//       const tableColumn = [
+//         "Name", 
+//         "Username", 
+//         "User ID", 
+//         "Mobile", 
+//         "Email", 
+//         "Followers", 
+//         "Following", 
+//         "Seller ID", 
+//         "User Seller ID", 
+//         "Status", 
+//         "Joined"
+//       ];
+//       const tableRows = [];
+
+//       selectedUsersData.forEach((user) => {
+//         const userData = [
+//           user.name || "N/A",
+//           `@${user.username}`,
+//           user.userid || "N/A",
+//           user.mobile || "N/A",
+//           user.email || "N/A",
+//           user.followers?.length || 0,
+//           user.following?.length || 0,
+//           user.seller_id || "N/A",
+//           user.userseller_id || "N/A",
+//           user.isSuspended ? "Suspended" : "Active",
+//           new Date(user.createdAt).toLocaleDateString()
+//         ];
+//         tableRows.push(userData);
+//       });
+
+//       autoTable(doc, {
+//         startY: 40,
+//         head: [tableColumn],
+//         body: tableRows,
+//         theme: 'grid',
+//         headStyles: { fillColor: [59, 130, 246], fontSize: 9, halign: 'left' },
+//         styles: { fontSize: 8, cellPadding: 3 }, // Slightly reduced font size to fit 11 columns perfectly
+//       });
+
+//       const finalY = doc.lastAutoTable.finalY + 10;
+//       doc.setFontSize(9);
+//       doc.setTextColor(150, 150, 150);
+//       doc.text("This is an official system generated bulk data report.", 14, finalY);
+
+//       doc.save(`Bulk_Users_Report_${Date.now()}.pdf`);
+//       toast.success(`${selectedUserIds.length} users exported successfully!`);
+//       setSelectedUserIds([]); // Download ke baad uncheck kar dena
+
+//     } catch (error) {
+//       console.error("Bulk Export Error:", error);
+//       toast.error("Failed to generate bulk PDF");
+//     }
+//   };
+
+//   const handleFilterChange = (e) => {
+//     const { name, value } = e.target;
+//     setFilters((prev) => ({
+//       ...prev,
+//       [name]: value,
+//     }));
+//     setPage(1);
+//   };
+
+//   const openModal = (user) => {
+//     setSelectedUser(user);
+//     setShowModal(true);
+//   };
+
+//   const viewActivityDetails = (user) => {
+//     navigate(`/users/${user._id}/activity`);
+//   };
+
+//   const closeModal = () => {
+//     setSelectedUser(null);
+//     setShowModal(false);
+//   };
+
+//   return (
+//     <div
+//       ref={topRef}
+//       className="space-y-4 sm:space-y-6 animate-fadeIn bg-white text-gray-900 p-4 sm:p-6"
+//     >
+//       {/* Header & Bulk Download Button */}
+//       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+//         <div>
+//           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Users</h1>
+//           <p className="text-gray-500 text-sm sm:text-base">
+//             Manage all registered users ({totalUsers})
+//           </p>
+//         </div>
+        
+//         {/* Naya Bulk Download Button */}
+//         {selectedUserIds.length > 0 && (
+//           <button
+//             onClick={handleBulkExport}
+//             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium text-sm sm:text-base shadow-sm"
+//           >
+//             <MdDownload size={20} />
+//             Download Selected ({selectedUserIds.length})
+//           </button>
+//         )}
+//       </div>
+
+//       {/* FILTER BAR - Fully Responsive Grid/Flex */}
+//       <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-end w-full">
+//         {/* Search */}
+//         <div className="flex flex-col gap-1 w-full sm:flex-1 sm:min-w-[200px]">
+//           <label className="text-[10px] font-bold uppercase text-gray-400">
+//             Search
+//           </label>
+//           <input
+//             type="text"
+//             name="search"
+//             placeholder="User ID, Username, Name or Email..."
+//             value={filters.search}
+//             onChange={handleFilterChange}
+//             className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
+//           />
+//         </div>
+
+//         <div className="grid grid-cols-2 sm:flex gap-4 w-full sm:w-auto">
+//           {/* Status */}
+//           <div className="flex flex-col gap-1 w-full sm:w-32">
+//             <label className="text-[10px] font-bold uppercase text-gray-400">
+//               Status
+//             </label>
+//             <select
+//               name="status"
+//               value={filters.status}
+//               onChange={handleFilterChange}
+//               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none w-full"
+//             >
+//               <option value="">All</option>
+//               <option value="active">Active</option>
+//               <option value="suspended">Suspended</option>
+//             </select>
+//           </div>
+
+//           {/* From */}
+//           <div className="flex flex-col gap-1 w-full sm:w-36">
+//             <label className="text-[10px] font-bold uppercase text-gray-400">
+//               From
+//             </label>
+//             <input
+//               type="date"
+//               name="startDate"
+//               value={filters.startDate}
+//               onChange={handleFilterChange}
+//               className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
+//             />
+//           </div>
+
+//           {/* To */}
+//           <div className="flex flex-col gap-1 w-full sm:w-36">
+//             <label className="text-[10px] font-bold uppercase text-gray-400">
+//               To
+//             </label>
+//             <input
+//               type="date"
+//               name="endDate"
+//               value={filters.endDate}
+//               onChange={handleFilterChange}
+//               className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
+//             />
+//           </div>
+//         </div>
+
+//         {/* Reset */}
+//         <button
+//           onClick={() => {
+//             setFilters({
+//               search: "",
+//               status: "",
+//               startDate: "",
+//               endDate: "",
+//             });
+//             setPage(1);
+//           }}
+//           className="text-xs font-bold text-red-500 hover:text-red-700 w-full sm:w-auto text-center sm:pb-2 pt-2 sm:pt-0"
+//         >
+//           Reset Filters
+//         </button>
+//       </div>
+
+//       {/* Loader */}
+//       {loading && (
+//         <div className="flex justify-center py-6">
+//           <div className="spinner"></div>
+//         </div>
+//       )}
+
+//       {/* Users Table */}
+//       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full">
+//         <div className="overflow-x-auto w-full">
+//           <table className="w-full min-w-[1100px] divide-y divide-gray-200">
+//             <thead className="bg-gray-50">
+//               <tr>
+//                 {/* Select All Checkbox */}
+//                 <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+//                   <input
+//                     type="checkbox"
+//                     checked={users.length > 0 && selectedUserIds.length === users.length}
+//                     onChange={handleSelectAll}
+//                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+//                   />
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   User
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   User ID
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   Contact
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   Stats
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   Seller ID
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   User Seller ID
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   Status
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   Joined
+//                 </th>
+//                 <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+//                   Actions
+//                 </th>
+//               </tr>
+//             </thead>
+
+//             <tbody className="bg-white divide-y divide-gray-200">
+//               {users.map((user) => (
+//                 <tr
+//                   key={user._id}
+//                   className="hover:bg-gray-50 transition-colors"
+//                 >
+//                   {/* Single Item Checkbox */}
+//                   <td className="px-4 py-4 text-center whitespace-nowrap">
+//                     <input
+//                       type="checkbox"
+//                       checked={selectedUserIds.includes(user._id)}
+//                       onChange={() => handleSelectUser(user._id)}
+//                       className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+//                     />
+//                   </td>
+//                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+//                     <div className="flex items-center gap-3">
+//                       {user.profilePicture ? (
+//                         <img
+//                           src={user.profilePicture}
+//                           alt={user.username}
+//                           className="w-10 h-10 rounded-full object-cover shrink-0"
+//                         />
+//                       ) : (
+//                         <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+//                           <MdPerson className="text-white text-xl" />
+//                         </div>
+//                       )}
+//                       <div className="min-w-0">
+//                         <p className="text-gray-900 font-medium truncate max-w-[120px]">
+//                           {user.name || "No name"}
+//                         </p>
+//                         <p className="text-gray-500 text-sm truncate max-w-[120px]">
+//                           @{user.username}
+//                         </p>
+//                       </div>
+//                     </div>
+//                   </td>
+//                   <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
+//                     {user.userid || "N/A"}
+//                   </td>
+
+//                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+//                     <p className="text-gray-700 text-sm">{user.mobile}</p>
+//                     {user.email && (
+//                       <p className="text-gray-500 text-xs truncate max-w-[140px]">{user.email}</p>
+//                     )}
+//                   </td>
+
+//                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+//                     <div className="text-sm">
+//                       <p className="text-gray-700">
+//                         <span className="text-blue-600 font-medium">
+//                           {user.followers?.length || 0}
+//                         </span>{" "}
+//                         followers
+//                       </p>
+//                       <p className="text-gray-500">
+//                         {user.following?.length || 0} following
+//                       </p>
+//                     </div>
+//                   </td>
+                  
+//                   <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
+//                     {user.seller_id || "N/A"}
+//                   </td>
+
+//                   <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
+//                     {user.userseller_id || "N/A"}
+//                   </td>
+
+//                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+//                     <span
+//                       className={`px-3 py-1 inline-flex rounded-full text-xs font-semibold ${
+//                         user.isSuspended
+//                           ? "bg-red-100 text-red-800"
+//                           : "bg-green-100 text-green-800"
+//                       }`}
+//                     >
+//                       {user.isSuspended ? "Suspended" : "Active"}
+//                     </span>
+//                   </td>
+
+//                   <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
+//                     {new Date(user.createdAt).toLocaleDateString()}
+//                   </td>
+
+//                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+//                     <div className="flex items-center gap-2">
+//                       <button
+//                         onClick={() => viewActivityDetails(user)}
+//                         className="p-1.5 sm:p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+//                         title="View Activity"
+//                       >
+//                         <MdVisibility size={18} />
+//                       </button>
+//                       <button
+//                         onClick={() => {
+//                           if (user.isSuspended) {
+//                             handleSuspendToggle(user._id, user.isSuspended);
+//                           } else {
+//                             setSuspendModal(user);
+//                           }
+//                         }}
+//                         className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
+//                           user.isSuspended
+//                             ? "bg-green-600 hover:bg-green-700 text-white"
+//                             : "bg-yellow-500 hover:bg-yellow-600 text-white"
+//                         }`}
+//                         title={user.isSuspended ? "Activate" : "Suspend"}
+//                       >
+//                         {user.isSuspended ? <MdCheckCircle size={18} /> : <MdBlock size={18} />}
+//                       </button>
+//                       {/* Export Single User Button */}
+//                       <button
+//                         onClick={() => handleExportUser(user)}
+//                         className="p-1.5 sm:p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+//                         title="Export User Data"
+//                       >
+//                         <MdDownload size={18} />
+//                       </button>
+//                       <button
+//                         onClick={() => setConfirmDelete(user)}
+//                         className="p-1.5 sm:p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+//                         title="Delete User"
+//                       >
+//                         <MdDelete size={18} />
+//                       </button>
+//                     </div>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         </div>
+//       </div>
+
+//       {/* Pagination */}
+//       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-6 mt-4 sm:mt-6">
+//         <button
+//           disabled={page === 1}
+//           onClick={() => setPage((p) => p - 1)}
+//           className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-40 text-sm sm:text-base"
+//         >
+//           &lt; Prev
+//         </button>
+
+//         <span className="text-sm sm:text-base text-gray-600">
+//           Page <span className="text-gray-900 font-medium">{page}</span> of{" "}
+//           <span className="text-gray-900 font-medium">{Math.max(1, Math.ceil(totalUsers / limit))}</span>
+//         </span>
+
+//         <button
+//           disabled={page >= Math.ceil(totalUsers / limit)}
+//           onClick={() => setPage((p) => p + 1)}
+//           className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-40 text-sm sm:text-base"
+//         >
+//           Next &gt;
+//         </button>
+//       </div>
+
+//       {/* User Details Modal */}
+//       {showModal && selectedUser && (
+//         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+//           <div className="bg-white border border-gray-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+//             <div className="p-4 sm:p-6 border-b border-gray-200">
+//               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">User Details</h2>
+//             </div>
+
+//             <div className="p-4 sm:p-6 space-y-4">
+//               <div className="flex items-center gap-4 mb-4 sm:mb-6">
+//                 {selectedUser.profilePicture ? (
+//                   <img
+//                     src={selectedUser.profilePicture}
+//                     alt={selectedUser.username}
+//                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shrink-0"
+//                   />
+//                 ) : (
+//                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+//                     <MdPerson className="text-white text-3xl" />
+//                   </div>
+//                 )}
+//                 <div className="min-w-0">
+//                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+//                     {selectedUser.name || "No name"}
+//                   </h3>
+//                   <p className="text-gray-500 truncate">@{selectedUser.username}</p>
+//                 </div>
+//               </div>
+
+//               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+//                 <div className="bg-gray-50 p-3 rounded-lg">
+//                   <p className="text-gray-500 text-xs uppercase font-bold mb-1">Mobile</p>
+//                   <p className="text-gray-900">{selectedUser.mobile}</p>
+//                 </div>
+//                 <div className="bg-gray-50 p-3 rounded-lg">
+//                   <p className="text-gray-500 text-xs uppercase font-bold mb-1">Email</p>
+//                   <p className="text-gray-900 truncate">{selectedUser.email || "N/A"}</p>
+//                 </div>
+//                 <div className="bg-gray-50 p-3 rounded-lg">
+//                   <p className="text-gray-500 text-xs uppercase font-bold mb-1">Followers</p>
+//                   <p className="text-gray-900 font-semibold">
+//                     {selectedUser.followers?.length || 0}
+//                   </p>
+//                 </div>
+//                 <div className="bg-gray-50 p-3 rounded-lg">
+//                   <p className="text-gray-500 text-xs uppercase font-bold mb-1">Following</p>
+//                   <p className="text-gray-900 font-semibold">
+//                     {selectedUser.following?.length || 0}
+//                   </p>
+//                 </div>
+//                 <div className="bg-gray-50 p-3 rounded-lg">
+//                   <p className="text-gray-500 text-xs uppercase font-bold mb-1">Status</p>
+//                   <p className={`font-semibold ${selectedUser.isSuspended ? "text-red-600" : "text-green-600"}`}>
+//                     {selectedUser.isSuspended ? "Suspended" : "Active"}
+//                   </p>
+//                 </div>
+//                 <div className="bg-gray-50 p-3 rounded-lg">
+//                   <p className="text-gray-500 text-xs uppercase font-bold mb-1">Joined</p>
+//                   <p className="text-gray-900">
+//                     {new Date(selectedUser.createdAt).toLocaleDateString()}
+//                   </p>
+//                 </div>
+//               </div>
+
+//               {selectedUser.bio && (
+//                 <div className="bg-gray-50 p-3 rounded-lg mt-2">
+//                   <p className="text-gray-500 text-xs uppercase font-bold mb-1">Bio</p>
+//                   <p className="text-gray-900 text-sm leading-relaxed">{selectedUser.bio}</p>
+//                 </div>
+//               )}
+//             </div>
+
+//             <div className="p-4 sm:p-6 border-t border-gray-200 flex justify-end">
+//               <button
+//                 onClick={closeModal}
+//                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors w-full sm:w-auto"
+//               >
+//                 Close
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Delete Confirmation Modal */}
+//       {confirmDelete && (
+//         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+//           <div className="bg-white border border-gray-200 rounded-xl max-w-md w-full p-6 shadow-2xl">
+//             <div className="text-center">
+//               <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+//                 <MdDelete size={32} />
+//               </div>
+//               <h3 className="text-xl font-bold text-gray-900 mb-2">
+//                 Delete User?
+//               </h3>
+//               <p className="text-gray-500 mb-6 text-sm sm:text-base">
+//                 Are you sure you want to delete{" "}
+//                 <span className="font-semibold text-gray-800">@{confirmDelete.username}</span>
+//                 ? This will permanently remove their profile, reels, comments,
+//                 and all related data. This action cannot be undone.
+//               </p>
+//               <div className="flex flex-col sm:flex-row gap-3">
+//                 <button
+//                   onClick={() => setConfirmDelete(null)}
+//                   className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-colors"
+//                 >
+//                   Cancel
+//                 </button>
+//                 <button
+//                   onClick={() => handleDeleteUser(confirmDelete._id)}
+//                   className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+//                 >
+//                   Delete User
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Suspend Modal */}
+//       {suspendModal && (
+//         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+//           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+//             <h3 className="text-xl font-bold mb-2 text-gray-900">
+//               Suspend User
+//             </h3>
+
+//             <p className="text-gray-500 mb-4 text-sm sm:text-base">
+//               Why are you suspending <b className="text-gray-800">@{suspendModal.username}</b>?
+//             </p>
+
+//             <textarea
+//               value={suspendReason}
+//               onChange={(e) => setSuspendReason(e.target.value)}
+//               placeholder="Enter suspension reason..."
+//               className="w-full border border-gray-300 rounded-lg p-3 mb-5 outline-none focus:ring-2 focus:ring-red-500 resize-none text-sm"
+//               rows={3}
+//             />
+
+//             <div className="flex flex-col sm:flex-row gap-3">
+//               <button
+//                 onClick={() => {
+//                   setSuspendModal(null);
+//                   setSuspendReason("");
+//                 }}
+//                 className="flex-1 bg-gray-100 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-gray-800"
+//               >
+//                 Cancel
+//               </button>
+
+//               <button
+//                 onClick={() => {
+//                   if (!suspendReason.trim()) {
+//                     toast.error("Please enter a reason");
+//                     return;
+//                   }
+//                   handleSuspendToggle(
+//                     suspendModal._id,
+//                     suspendModal.isSuspended,
+//                     suspendReason
+//                   );
+//                 }}
+//                 className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-medium hover:bg-red-700 transition-colors"
+//               >
+//                 Confirm Suspend
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default Users;
+
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   MdSearch,
   MdVisibility,
   MdBlock,
   MdCheckCircle,
   MdPerson,
-  MdDelete, // Imported Delete Icon
+  MdDelete,
+  MdDownload,
 } from "react-icons/md";
 import toast from "react-hot-toast";
+
+// ✅ Excel Import added (PDF removed)
+import * as XLSX from "xlsx";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const Users = () => {
   const navigate = useNavigate();
@@ -22,8 +848,12 @@ const Users = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [suspendModal, setSuspendModal] = useState(null);
   const [suspendReason, setSuspendReason] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(null); // State for delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const topRef = useRef(null);
+  
+  // ✅ Naya state checkboxes ke liye
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+
   const [filters, setFilters] = useState({
     search: "",
     status: "",
@@ -69,6 +899,7 @@ const Users = () => {
 
       setUsers(response.data.data);
       setTotalUsers(response.data.total);
+      setSelectedUserIds([]); // Page change hone par selection clear karna
     } catch (error) {
       toast.error("Permission denied");
     } finally {
@@ -76,34 +907,51 @@ const Users = () => {
     }
   };
 
-const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
-  try {
-    await axios.put(
-      `http://localhost:4000/api/users/admin_users/${userId}`,
-      {
-        isSuspended: !currentStatus,
-        suspendReason: reason, // ✅ NEW
-      },
-      {
-        withCredentials: true,
-      }
+  // ✅ Checkbox Select All Handler
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedUserIds(users.map((u) => u._id));
+    } else {
+      setSelectedUserIds([]);
+    }
+  };
+
+  // ✅ Single Checkbox Handler
+  const handleSelectUser = (userId) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
     );
+  };
 
-    toast.success(
-      `User ${!currentStatus ? 'suspended' : 'activated'} successfully`
-    );
+  const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
+    try {
+      await axios.put(
+        `http://localhost:4000/api/users/admin_users/${userId}`,
+        {
+          isSuspended: !currentStatus,
+          suspendReason: reason,
+        },
+        {
+          withCredentials: true,
+        }
+      );
 
-    setSuspendModal(null);
-    setSuspendReason("");
+      toast.success(
+        `User ${!currentStatus ? 'suspended' : 'activated'} successfully`
+      );
 
-    fetchUsers();
-  } catch (error) {
-    console.error(error);
-    toast.error(error.response?.data?.message || 'Permission denied');
-  }
-};
+      setSuspendModal(null);
+      setSuspendReason("");
 
-  // NEW: Delete User Function
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Permission denied');
+    }
+  };
+
   const handleDeleteUser = async (userId) => {
     try {
       await axios.delete(
@@ -114,24 +962,100 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
       );
 
       toast.success("User and all related data deleted successfully");
-
       setConfirmDelete(null);
-
-      // ✅ Correct call (no params)
       fetchUsers();
     } catch (error) {
       console.error("Error deleting user:", error);
       toast.error(error.response?.data?.message || "Failed to delete user");
     }
   };
+
+  // ✅ Single User Export (Excel format)
+  const handleExportUser = (user) => {
+    try {
+      // Create an array of objects to represent rows in Excel
+      const userData = [
+        {
+          "Full Name": user.name || "N/A",
+          "Username": `@${user.username}` || "N/A",
+          "User ID": user.userid || "N/A",
+          "Mobile Number": user.mobile || "N/A",
+          "Email Address": user.email || "N/A",
+          "Account Status": user.isSuspended ? "Suspended" : "Active",
+          "Joined Date": new Date(user.createdAt).toLocaleDateString(),
+          "Followers": user.followers?.length || 0,
+          "Following": user.following?.length || 0,
+          "Seller ID": user.seller_id || "N/A",
+          "User Seller ID": user.userseller_id || "N/A",
+          "Bio": user.bio || "No bio provided"
+        }
+      ];
+
+      // Convert JSON data to worksheet
+      const worksheet = XLSX.utils.json_to_sheet(userData);
+      
+      // Create a new workbook and append the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "User Profile Report");
+
+      // Save the Excel file
+      XLSX.writeFile(workbook, `${user.username || 'user'}_report.xlsx`);
+      toast.success("Professional Excel Report Downloaded!");
+
+    } catch (error) {
+      console.error("Export Error:", error);
+      toast.error("Failed to generate Excel file");
+    }
+  };
+
+  // ✅ Bulk Export for Multiple Users (Excel format)
+  const handleBulkExport = () => {
+    if (selectedUserIds.length === 0) return;
+
+    try {
+      // Filter only selected users
+      const selectedUsersData = users.filter((u) => selectedUserIds.includes(u._id));
+
+      // Map users to formatted objects for Excel
+      const excelData = selectedUsersData.map((user) => ({
+        "Name": user.name || "N/A",
+        "Username": `@${user.username}`,
+        "User ID": user.userid || "N/A",
+        "Mobile": user.mobile || "N/A",
+        "Email": user.email || "N/A",
+        "Followers": user.followers?.length || 0,
+        "Following": user.following?.length || 0,
+        "Seller ID": user.seller_id || "N/A",
+        "User Seller ID": user.userseller_id || "N/A",
+        "Status": user.isSuspended ? "Suspended" : "Active",
+        "Joined": new Date(user.createdAt).toLocaleDateString()
+      }));
+
+      // Convert mapped data to worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Create workbook and append worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Bulk Users Report");
+
+      // Save the file
+      XLSX.writeFile(workbook, `Bulk_Users_Report_${Date.now()}.xlsx`);
+      
+      toast.success(`${selectedUserIds.length} users exported to Excel successfully!`);
+      setSelectedUserIds([]); // Download ke baad uncheck kar dena
+
+    } catch (error) {
+      console.error("Bulk Export Error:", error);
+      toast.error("Failed to generate bulk Excel file");
+    }
+  };
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-
     setFilters((prev) => ({
       ...prev,
       [name]: value,
     }));
-
     setPage(1);
   };
 
@@ -152,79 +1076,91 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
   return (
     <div
       ref={topRef}
-      className="space-y-6 animate-fadeIn bg-white text-gray-900 p-6"
+      className="space-y-4 sm:space-y-6 animate-fadeIn bg-white text-gray-900 p-4 sm:p-6"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header & Bulk Download Button */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Users</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Users</h1>
+          <p className="text-gray-500 text-sm sm:text-base">
             Manage all registered users ({totalUsers})
           </p>
         </div>
+        
+        {/* Naya Bulk Download Button */}
+        {selectedUserIds.length > 0 && (
+          <button
+            onClick={handleBulkExport}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium text-sm sm:text-base shadow-sm"
+          >
+            <MdDownload size={20} />
+            Download Selected ({selectedUserIds.length})
+          </button>
+        )}
       </div>
 
-      {/* Search Bar */}
-      {/* FILTER BAR */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-4 items-end">
+      {/* FILTER BAR - Fully Responsive Grid/Flex */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-end w-full">
         {/* Search */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 w-full sm:flex-1 sm:min-w-[200px]">
           <label className="text-[10px] font-bold uppercase text-gray-400">
             Search
           </label>
           <input
             type="text"
             name="search"
-            placeholder="userId , Username, name or email..."
+            placeholder="User ID, Username, Name or Email..."
             value={filters.search}
             onChange={handleFilterChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-48"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
           />
         </div>
 
-        {/* Status */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">
-            Status
-          </label>
-          <select
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none"
-          >
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </div>
+        <div className="grid grid-cols-2 sm:flex gap-4 w-full sm:w-auto">
+          {/* Status */}
+          <div className="flex flex-col gap-1 w-full sm:w-32">
+            <label className="text-[10px] font-bold uppercase text-gray-400">
+              Status
+            </label>
+            <select
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none w-full"
+            >
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
 
-        {/* From */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">
-            From
-          </label>
-          <input
-            type="date"
-            name="startDate"
-            value={filters.startDate}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+          {/* From */}
+          <div className="flex flex-col gap-1 w-full sm:w-36">
+            <label className="text-[10px] font-bold uppercase text-gray-400">
+              From
+            </label>
+            <input
+              type="date"
+              name="startDate"
+              value={filters.startDate}
+              onChange={handleFilterChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
+            />
+          </div>
 
-        {/* To */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">
-            To
-          </label>
-          <input
-            type="date"
-            name="endDate"
-            value={filters.endDate}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {/* To */}
+          <div className="flex flex-col gap-1 w-full sm:w-36">
+            <label className="text-[10px] font-bold uppercase text-gray-400">
+              To
+            </label>
+            <input
+              type="date"
+              name="endDate"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
+            />
+          </div>
         </div>
 
         {/* Reset */}
@@ -238,9 +1174,9 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
             });
             setPage(1);
           }}
-          className="text-xs font-bold text-red-500 hover:text-red-700 pb-2"
+          className="text-xs font-bold text-red-500 hover:text-red-700 w-full sm:w-auto text-center sm:pb-2 pt-2 sm:pt-0"
         >
-          Reset
+          Reset Filters
         </button>
       </div>
 
@@ -252,86 +1188,103 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
       )}
 
       {/* Users Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b border-gray-200">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full min-w-[1100px] divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                {/* Select All Checkbox */}
+                <th className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                  <input
+                    type="checkbox"
+                    checked={users.length > 0 && selectedUserIds.length === users.length}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                </th>
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User ID
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Contact
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stats
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Seller ID
                 </th>
-
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User Seller ID
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                <th className="px-4 sm:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-200">
               {users.map((user) => (
                 <tr
                   key={user._id}
-                  className="border-b border-gray-200 hover:bg-gray-100 transition-colors"
+                  className="hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-6 py-4">
+                  {/* Single Item Checkbox */}
+                  <td className="px-4 py-4 text-center whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedUserIds.includes(user._id)}
+                      onChange={() => handleSelectUser(user._id)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       {user.profilePicture ? (
                         <img
                           src={user.profilePicture}
                           alt={user.username}
-                          className="w-10 h-10 rounded-full object-cover"
+                          className="w-10 h-10 rounded-full object-cover shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
                           <MdPerson className="text-white text-xl" />
                         </div>
                       )}
-                      <div>
-                        <p className="text-gray-900 font-medium">
+                      <div className="min-w-0">
+                        <p className="text-gray-900 font-medium truncate max-w-[120px]">
                           {user.name || "No name"}
                         </p>
-                        <p className="text-gray-500 text-sm">
+                        <p className="text-gray-500 text-sm truncate max-w-[120px]">
                           @{user.username}
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-700 text-sm">
+                  <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
                     {user.userid || "N/A"}
                   </td>
 
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <p className="text-gray-700 text-sm">{user.mobile}</p>
                     {user.email && (
-                      <p className="text-gray-500 text-xs">{user.email}</p>
+                      <p className="text-gray-500 text-xs truncate max-w-[140px]">{user.email}</p>
                     )}
                   </td>
 
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
                       <p className="text-gray-700">
-                        <span className="text-blue-600">
+                        <span className="text-blue-600 font-medium">
                           {user.followers?.length || 0}
                         </span>{" "}
                         followers
@@ -341,67 +1294,71 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
                       </p>
                     </div>
                   </td>
-                  {/* 🔥 Seller ID */}
-                  <td className="px-6 py-4 text-gray-700 text-sm">
+                  
+                  <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
                     {user.seller_id || "N/A"}
                   </td>
 
-                  {/* 🔥 User Seller ID */}
-                  <td className="px-6 py-4 text-gray-700 text-sm">
+                  <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
                     {user.userseller_id || "N/A"}
                   </td>
 
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      className={`px-3 py-1 inline-flex rounded-full text-xs font-semibold ${
                         user.isSuspended
-                          ? "bg-red-600/20 text-red-600"
-                          : "bg-green-600/20 text-green-600"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-green-100 text-green-800"
                       }`}
                     >
                       {user.isSuspended ? "Suspended" : "Active"}
                     </span>
                   </td>
 
-                  <td className="px-6 py-4 text-gray-700 text-sm">
+                  <td className="px-4 sm:px-6 py-4 text-gray-700 text-sm whitespace-nowrap">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
 
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => viewActivityDetails(user)}
-                        className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        className="p-1.5 sm:p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                         title="View Activity"
                       >
-                        <MdVisibility />
+                        <MdVisibility size={18} />
                       </button>
                       <button
                         onClick={() => {
                           if (user.isSuspended) {
-                            // direct activate (no reason needed)
                             handleSuspendToggle(user._id, user.isSuspended);
                           } else {
-                            // open modal for suspend
                             setSuspendModal(user);
                           }
                         }}
-                        className={`p-2 rounded-lg transition-colors ${
+                        className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
                           user.isSuspended
                             ? "bg-green-600 hover:bg-green-700 text-white"
                             : "bg-yellow-500 hover:bg-yellow-600 text-white"
                         }`}
                         title={user.isSuspended ? "Activate" : "Suspend"}
                       >
-                        {user.isSuspended ? <MdCheckCircle /> : <MdBlock />}
+                        {user.isSuspended ? <MdCheckCircle size={18} /> : <MdBlock size={18} />}
                       </button>
-                      {/* NEW: Delete Button */}
+                      {/* Export Single User Button */}
+                      <button
+                        onClick={() => handleExportUser(user)}
+                        className="p-1.5 sm:p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                        title="Export User Data"
+                      >
+                        <MdDownload size={18} />
+                      </button>
                       <button
                         onClick={() => setConfirmDelete(user)}
-                        className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                        className="p-1.5 sm:p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                         title="Delete User"
                       >
-                        <MdDelete />
+                        <MdDelete size={18} />
                       </button>
                     </div>
                   </td>
@@ -413,24 +1370,24 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-center gap-6 mt-6">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-6 mt-4 sm:mt-6">
         <button
           disabled={page === 1}
           onClick={() => setPage((p) => p - 1)}
-          className="px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-40"
+          className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-40 text-sm sm:text-base"
         >
-          &lt; Previous
+          &lt; Prev
         </button>
 
-        <span className="text-sm text-gray-600">
-          Page <span className="text-gray-900">{page}</span> of{" "}
-          <span className="text-gray-900">{Math.ceil(totalUsers / limit)}</span>
+        <span className="text-sm sm:text-base text-gray-600">
+          Page <span className="text-gray-900 font-medium">{page}</span> of{" "}
+          <span className="text-gray-900 font-medium">{Math.max(1, Math.ceil(totalUsers / limit))}</span>
         </span>
 
         <button
           disabled={page >= Math.ceil(totalUsers / limit)}
           onClick={() => setPage((p) => p + 1)}
-          className="px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-40"
+          className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-40 text-sm sm:text-base"
         >
           Next &gt;
         </button>
@@ -440,60 +1397,60 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
       {showModal && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white border border-gray-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">User Details</h2>
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">User Details</h2>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-4 mb-6">
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="flex items-center gap-4 mb-4 sm:mb-6">
                 {selectedUser.profilePicture ? (
                   <img
                     src={selectedUser.profilePicture}
                     alt={selectedUser.username}
-                    className="w-20 h-20 rounded-full object-cover"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shrink-0"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
                     <MdPerson className="text-white text-3xl" />
                   </div>
                 )}
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                     {selectedUser.name || "No name"}
                   </h3>
-                  <p className="text-gray-500">@{selectedUser.username}</p>
+                  <p className="text-gray-500 truncate">@{selectedUser.username}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Mobile</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-500 text-xs uppercase font-bold mb-1">Mobile</p>
                   <p className="text-gray-900">{selectedUser.mobile}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Email</p>
-                  <p className="text-gray-900">{selectedUser.email || "N/A"}</p>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-500 text-xs uppercase font-bold mb-1">Email</p>
+                  <p className="text-gray-900 truncate">{selectedUser.email || "N/A"}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Followers</p>
-                  <p className="text-gray-900">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-500 text-xs uppercase font-bold mb-1">Followers</p>
+                  <p className="text-gray-900 font-semibold">
                     {selectedUser.followers?.length || 0}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Following</p>
-                  <p className="text-gray-900">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-500 text-xs uppercase font-bold mb-1">Following</p>
+                  <p className="text-gray-900 font-semibold">
                     {selectedUser.following?.length || 0}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Status</p>
-                  <p className="text-gray-900">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-500 text-xs uppercase font-bold mb-1">Status</p>
+                  <p className={`font-semibold ${selectedUser.isSuspended ? "text-red-600" : "text-green-600"}`}>
                     {selectedUser.isSuspended ? "Suspended" : "Active"}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Joined</p>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-500 text-xs uppercase font-bold mb-1">Joined</p>
                   <p className="text-gray-900">
                     {new Date(selectedUser.createdAt).toLocaleDateString()}
                   </p>
@@ -501,17 +1458,17 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
               </div>
 
               {selectedUser.bio && (
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Bio</p>
-                  <p className="text-gray-900">{selectedUser.bio}</p>
+                <div className="bg-gray-50 p-3 rounded-lg mt-2">
+                  <p className="text-gray-500 text-xs uppercase font-bold mb-1">Bio</p>
+                  <p className="text-gray-900 text-sm leading-relaxed">{selectedUser.bio}</p>
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end">
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex justify-end">
               <button
                 onClick={closeModal}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors w-full sm:w-auto"
               >
                 Close
               </button>
@@ -520,7 +1477,7 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
         </div>
       )}
 
-      {/* NEW: Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
           <div className="bg-white border border-gray-200 rounded-xl max-w-md w-full p-6 shadow-2xl">
@@ -531,13 +1488,13 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Delete User?
               </h3>
-              <p className="text-gray-500 mb-6">
+              <p className="text-gray-500 mb-6 text-sm sm:text-base">
                 Are you sure you want to delete{" "}
-                <span className="font-semibold">@{confirmDelete.username}</span>
+                <span className="font-semibold text-gray-800">@{confirmDelete.username}</span>
                 ? This will permanently remove their profile, reels, comments,
                 and all related data. This action cannot be undone.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setConfirmDelete(null)}
                   className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-colors"
@@ -556,57 +1513,57 @@ const handleSuspendToggle = async (userId, currentStatus, reason = "") => {
         </div>
       )}
 
+      {/* Suspend Modal */}
       {suspendModal && (
-  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
-    <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
-      <h3 className="text-xl font-bold mb-3 text-gray-900">
-        Suspend User
-      </h3>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-xl font-bold mb-2 text-gray-900">
+              Suspend User
+            </h3>
 
-      <p className="text-gray-500 mb-4">
-        Why are you suspending <b>@{suspendModal.username}</b>?
-      </p>
+            <p className="text-gray-500 mb-4 text-sm sm:text-base">
+              Why are you suspending <b className="text-gray-800">@{suspendModal.username}</b>?
+            </p>
 
-      <textarea
-        value={suspendReason}
-        onChange={(e) => setSuspendReason(e.target.value)}
-        placeholder="Enter reason..."
-        className="w-full border border-gray-300 rounded-lg p-2 mb-4 outline-none focus:ring-2 focus:ring-red-500"
-        rows={3}
-      />
+            <textarea
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              placeholder="Enter suspension reason..."
+              className="w-full border border-gray-300 rounded-lg p-3 mb-5 outline-none focus:ring-2 focus:ring-red-500 resize-none text-sm"
+              rows={3}
+            />
 
-      <div className="flex gap-3">
-        <button
-          onClick={() => {
-            setSuspendModal(null);
-            setSuspendReason("");
-          }}
-          className="flex-1 bg-gray-100 py-2 rounded-lg"
-        >
-          Cancel
-        </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  setSuspendModal(null);
+                  setSuspendReason("");
+                }}
+                className="flex-1 bg-gray-100 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-gray-800"
+              >
+                Cancel
+              </button>
 
-        <button
-          onClick={() => {
-            if (!suspendReason.trim()) {
-              toast.error("Please enter reason");
-              return;
-            }
-
-            handleSuspendToggle(
-              suspendModal._id,
-              suspendModal.isSuspended,
-              suspendReason
-            );
-          }}
-          className="flex-1 bg-red-600 text-white py-2 rounded-lg"
-        >
-          Confirm Suspend
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+              <button
+                onClick={() => {
+                  if (!suspendReason.trim()) {
+                    toast.error("Please enter a reason");
+                    return;
+                  }
+                  handleSuspendToggle(
+                    suspendModal._id,
+                    suspendModal.isSuspended,
+                    suspendReason
+                  );
+                }}
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              >
+                Confirm Suspend
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

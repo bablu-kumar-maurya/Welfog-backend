@@ -6,7 +6,7 @@ const ReelInteraction = require("../models/ReelInteraction");
 
 router.post("/block-user", async (req, res) => {
   try {
-    const { blockerId, targetUserId } = req.body; // Both IDs will come from the body
+    const { blockerId, targetUserId } = req.body; 
 
     if (!blockerId || !targetUserId) {
       return res.status(400).json({ success: false, message: "Both blockerId and targetUserId are required." });
