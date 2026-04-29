@@ -1839,10 +1839,41 @@ router.get("/others/:userId", async (req, res) => {
         }
         // 🔥 ADDED: MUTUAL BLOCK FILTER LOGIC END 🔥
 
-        // 🚫 Exclude a reel (for infinite scroll)
-        if (excludeId) {
-            query._id = { $ne: excludeId };
+        if (currentUserId && mongoose.isValidObjectId(currentUserId)) {
+    const notInterested = await ReelInteraction.find({
+        user: new mongoose.Types.ObjectId(currentUserId),
+        action: "not_interested"
+    }).select("reel").lean();
+
+    if (notInterested.length > 0) {
+        const notInterestedIds = notInterested.map(
+            i => new mongoose.Types.ObjectId(i.reel)
+        );
+
+        if (query._id) {
+            query._id = {
+                ...query._id,
+                $nin: [...(query._id.$nin || []), ...notInterestedIds]
+            };
+        } else {
+            query._id = { $nin: notInterestedIds };
         }
+    }
+}
+
+      // 🚫 Exclude a reel (for infinite scroll) — FIXED
+if (excludeId) {
+    const excludeObjectId = new mongoose.Types.ObjectId(excludeId);
+
+    if (query._id) {
+        query._id = {
+            ...query._id,
+            $ne: excludeObjectId
+        };
+    } else {
+        query._id = { $ne: excludeObjectId };
+    }
+}
 
         // 📦 Fetch reels
         const reels = await Reel.find(query)
