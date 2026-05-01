@@ -16,6 +16,8 @@ const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logError = require("../utils/logError");
 const axios = require("axios");
+const mongoose = require("mongoose"); 
+const ReelInteraction = require('../models/ReelInteraction');
 
 // create new user
 
@@ -540,52 +542,92 @@ router.get("/:id", async (req, res) => {
 router.get("/userpost/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-const viewerId = req.query.viewerId; // 🔥 Jo dekh raha hai (Frontend se aayega)
+    const viewerId = req.query.viewerId;
 
-    // Get pagination parameters from query string
-    let limit = parseInt(req.query.limit) || 12; // default to 10
-    let skip = parseInt(req.query.skip) || 0; // default to 0
+    let limit = parseInt(req.query.limit) || 12;
+    let skip = parseInt(req.query.skip) || 0;
 
-    // Validate inputs
-    if (limit < 1 || limit > 50) limit = 10; // enforce max limit
+    if (limit < 1 || limit > 50) limit = 10;
     if (skip < 0) skip = 0;
 
-    // Step 1: Fetch user (excluding passwordHash)
+    // 👤 Fetch user
     const user = await User.findById(userId).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-if (viewerId) {
+    // 🔒 BLOCK CHECK
+    if (viewerId) {
       const viewer = await User.findById(viewerId).select("blockedUsers");
 
-      // Check dono taraf se: Kya viewer ne use block kiya ya usne viewer ko?
-      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(bid => bid.toString() === userId);
-      const hasTargetBlockedViewer = user.blockedUsers?.some(bid => bid.toString() === viewerId);
+      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(
+        bid => bid.toString() === userId
+      );
+
+      const hasTargetBlockedViewer = user.blockedUsers?.some(
+        bid => bid.toString() === viewerId
+      );
 
       if (hasViewerBlockedTarget || hasTargetBlockedViewer) {
-        // Reels hide karne ke liye hum empty response bhej sakte hain ya 404
-        return res.status(404).json({ message: "User not found", reels: [], postCount: 0 });
+        return res.status(404).json({
+          message: "User not found",
+          reels: [],
+          postCount: 0
+        });
       }
     }
 
-    // Step 2: Get total count of reels
-    const totalCount = await Reel.countDocuments({ user: userId });
+    // 🔥 BASE QUERY
+    let query = { user: userId };
 
-    // Step 3: Get reels for this page
-    const reels = await Reel.find({ user: userId })
+    // 🔥 INTEREST FILTER LOGIC
+    if (viewerId && mongoose.isValidObjectId(viewerId)) {
+      const interactions = await ReelInteraction.find({
+        user: viewerId
+      }).lean();
+
+      const notInterestedIds = interactions
+        .filter(i => i.action === "not_interested")
+        .map(i => new mongoose.Types.ObjectId(i.reel));
+
+      const interestedIds = interactions
+        .filter(i => i.action === "interested")
+        .map(i => new mongoose.Types.ObjectId(i.reel));
+
+      // ❌ Remove not interested reels
+      if (notInterestedIds.length > 0) {
+        query._id = {
+          ...(query._id || {}),
+          $nin: notInterestedIds
+        };
+      }
+
+      // ⭐ OPTIONAL: Only show interested reels (agar chaho toggle laga sakte ho)
+      // Example: ?onlyInterested=true
+      if (req.query.onlyInterested === "true" && interestedIds.length > 0) {
+        query._id = {
+          ...(query._id || {}),
+          $in: interestedIds
+        };
+      }
+    }
+
+    // 📊 Count
+    const totalCount = await Reel.countDocuments(query);
+
+    // 🎬 Fetch reels
+    const reels = await Reel.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    // Step 4: Determine if more data is available
     const hasMore = skip + reels.length < totalCount;
 
-    // Step 5: Return user data + reels + metadata
     res.json({
       user: user.toObject(),
       postCount: totalCount,
       reels,
       hasMore,
     });
+
   } catch (err) {
     console.error("Error fetching user reels:", err);
     err.statusCode = err.statusCode || 500;
@@ -696,50 +738,61 @@ router.get("/admin/users/:userid/following", adminAuth, async (req, res) => {
 router.get("/userlikedposts/:id", async (req, res) => {
   try {
     const userId = req.params.id;
+    const viewerId = req.query.viewerId;
 
-    // Pagination parameters
     let limit = parseInt(req.query.limit) || 10;
     let skip = parseInt(req.query.skip) || 0;
 
     if (limit < 1 || limit > 50) limit = 10;
     if (skip < 0) skip = 0;
 
-    const viewerId = req.query.viewerId; // Frontend se aayega
-let blockedList = [];
-if (viewerId) {
-    const viewer = await User.findById(viewerId).select("blockedUsers");
-    if (viewer) blockedList = viewer.blockedUsers || [];
-}
+    // 🔥 BLOCK CHECK
+    if (viewerId) {
+      const viewer = await User.findById(viewerId).select("blockedUsers");
+      const targetUser = await User.findById(userId).select("blockedUsers");
 
-  const totalLikes = await Reel.countDocuments({ 
-    likes: userId, 
-    user: { $nin: blockedList } // 👈 Ye line add karo
-});
+      const viewerBlocked = viewer?.blockedUsers?.some(
+        id => id.toString() === userId
+      );
 
-    const likedReels = await Reel.find({ 
-    likes: userId, 
-    user: { $nin: blockedList } // 👈 Ye line add karo
-})
-    
+      const targetBlocked = targetUser?.blockedUsers?.some(
+        id => id.toString() === viewerId
+      );
+
+    if (viewerBlocked || targetBlocked) {
+        // ❗ 403 hata diya, 200 return karo
+        return res.status(200).json({
+          totalLikes: 0,
+          count: 0,
+          reels: [],
+          hasMore: false,
+          blocked: true, // 👈 extra flag (frontend ke liye useful)
+          message: "User is blocked"
+        });
+      }
+    }
+
+    // 🔢 TOTAL count
+    const totalLikes = await Reel.countDocuments({ likes: userId });
+
+    // 📦 DATA
+    const likedReels = await Reel.find({ likes: userId })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("user", "username name profilePicture");
 
-    // 🔁 More data available or not
     const hasMore = skip + likedReels.length < totalLikes;
 
-    // ✅ FINAL RESPONSE
     res.status(200).json({
-      totalLikes, // 👈 TOTAL likes count
+      totalLikes,
       count: likedReels.length,
       reels: likedReels,
       hasMore,
     });
+
   } catch (err) {
-    console.error("Error fetching user's liked reels:", err);
-    err.statusCode = err.statusCode || 500;
-    await logError(req, err);
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
