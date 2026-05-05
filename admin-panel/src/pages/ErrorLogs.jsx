@@ -53,57 +53,58 @@ const ErrorLogs = () => {
     };
 
     return (
-        <div className="p-4 sm:p-6 w-full max-w-full overflow-hidden">
+        <div className="p-3 sm:p-6 w-full max-w-full mx-auto box-border">
 
-            {/* Header and Filter Section - Now on the same line on larger screens */}
-            <div className="mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            {/* Header and Filter Section */}
+            <div className="mb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-5">
                 
                 {/* Page Header */}
                 <div className="shrink-0">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Error Logs</h1>
-                    <p className="text-sm sm:text-base text-gray-500 mt-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">Error Logs</h1>
+                    <p className="text-sm text-gray-500 mt-1">
                         Monitor backend API errors and system issues
                     </p>
                 </div>
 
-                {/* Date Filter */}
-                <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-end w-full lg:w-auto">
+                {/* Grid-based Date Filter for better mobile alignment */}
+                <div className="w-full xl:w-auto grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-end gap-3 sm:gap-4">
 
-                    <div className="w-full sm:w-auto flex-1 sm:flex-none">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">
+                    <div className="w-full">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
                             Start Date
                         </label>
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
                         />
                     </div>
 
-                    <div className="w-full sm:w-auto flex-1 sm:flex-none">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">
+                    <div className="w-full">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
                             End Date
                         </label>
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-auto focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
                         />
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    {/* Buttons span full width on small screens, align normally on large */}
+                    <div className="flex gap-2 w-full sm:col-span-2 lg:w-auto mt-1 lg:mt-0">
                         <button
                             onClick={applyFilter}
-                            className="w-full sm:w-auto px-5 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                            className="flex-1 lg:flex-none px-5 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm"
                         >
-                            Apply Filter
+                            Apply
                         </button>
 
                         <button
                             onClick={resetFilter}
-                            className="w-full sm:w-auto px-5 py-2 bg-gray-500 text-white font-medium rounded-lg text-sm hover:bg-gray-600 transition-colors"
+                            className="flex-1 lg:flex-none px-5 py-2 bg-gray-100 text-gray-700 font-medium border border-gray-300 rounded-lg text-sm hover:bg-gray-200 transition-colors whitespace-nowrap shadow-sm"
                         >
                             Reset
                         </button>
@@ -112,21 +113,23 @@ const ErrorLogs = () => {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden w-full">
+            {/* Table Section */}
+            <div className="bg-white shadow-sm rounded-xl border border-gray-200 w-full overflow-hidden">
 
                 <div className="overflow-x-auto w-full">
                     <table className="min-w-full text-sm text-left whitespace-nowrap">
 
-                        <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
+                        <thead className="bg-gray-50/80 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
                             <tr>
-                                <th className="px-4 py-3 font-semibold">API</th>
-                                <th className="px-4 py-3 font-semibold">Method</th>
-                                <th className="px-4 py-3 font-semibold">Status</th>
-                                <th className="px-4 py-3 font-semibold">Error</th>
-                                <th className="px-4 py-3 font-semibold">IP</th>
-                                <th className="px-4 py-3 font-semibold">Time</th>
-                                <th className="px-4 py-3 font-semibold">Action</th>
+                                <th className="px-4 py-3.5 font-semibold">API</th>
+                                <th className="px-4 py-3.5 font-semibold">Method</th>
+                                <th className="px-4 py-3.5 font-semibold">Status</th>
+                                <th className="px-4 py-3.5 font-semibold">Error</th>
+                                {/* Hidden on mobile, visible on medium+ screens */}
+                                <th className="px-4 py-3.5 font-semibold hidden md:table-cell">IP</th>
+                                {/* Hidden on small/medium screens, visible on large+ screens */}
+                                <th className="px-4 py-3.5 font-semibold hidden lg:table-cell">Time</th>
+                                <th className="px-4 py-3.5 font-semibold text-right sm:text-left">Action</th>
                             </tr>
                         </thead>
 
@@ -134,46 +137,49 @@ const ErrorLogs = () => {
 
                             {logs.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="text-center py-8 text-gray-400 font-medium">
-                                        No error logs found
+                                    <td colSpan="7" className="text-center py-10 text-gray-400 font-medium">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <span className="text-3xl mb-2">✅</span>
+                                            No error logs found
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
                                 logs.map((log) => (
-                                    <tr key={log._id} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={log._id} className="hover:bg-gray-50/80 transition-colors group">
 
-                                        <td className="px-4 py-3 font-mono text-xs text-blue-600 max-w-[150px] sm:max-w-[200px] truncate">
+                                        <td className="px-4 py-3 font-mono text-xs text-blue-600 max-w-[120px] sm:max-w-[180px] truncate">
                                             {log.api}
                                         </td>
 
                                         <td className="px-4 py-3">
-                                            <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-700 rounded-md">
+                                            <span className="px-2 py-1 text-[11px] uppercase tracking-wide font-bold bg-gray-100 text-gray-700 rounded">
                                                 {log.method}
                                             </span>
                                         </td>
 
                                         <td className="px-4 py-3 text-xs">
-                                            <span className={`px-2 py-1 font-semibold rounded-md ${log.statusCode >= 500 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                            <span className={`px-2.5 py-1 font-bold rounded-full ${log.statusCode >= 500 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
                                                 {log.statusCode || 500}
                                             </span>
                                         </td>
 
-                                        <td className="px-4 py-3 text-red-600 font-medium max-w-[200px] sm:max-w-[300px] truncate" title={log.errorMessage}>
+                                        <td className="px-4 py-3 text-gray-700 font-medium max-w-[150px] sm:max-w-[200px] xl:max-w-[350px] truncate" title={log.errorMessage}>
                                             {log.errorMessage}
                                         </td>
 
-                                        <td className="px-4 py-3 text-gray-500 text-xs">
+                                        <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
                                             {log.ip}
                                         </td>
 
-                                        <td className="px-4 py-3 text-gray-500 text-xs">
+                                        <td className="px-4 py-3 text-gray-500 text-xs hidden lg:table-cell">
                                             {new Date(log.createdAt).toLocaleString()}
                                         </td>
 
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 text-right sm:text-left">
                                             <button
                                                 onClick={() => setSelectedError(log)}
-                                                className="px-3 py-1 bg-blue-50 text-blue-600 font-medium text-xs rounded hover:bg-blue-100 transition-colors"
+                                                className="px-3 py-1.5 bg-blue-50 text-blue-600 font-semibold text-xs rounded-md hover:bg-blue-600 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm"
                                             >
                                                 View
                                             </button>
@@ -188,21 +194,23 @@ const ErrorLogs = () => {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3.5 bg-gray-50/50 border-t border-gray-200">
 
                     <button
                         onClick={() => setPage(page - 1)}
                         disabled={page === 1}
-                        className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                     >
                         Previous
                     </button>
 
-                    <span className="text-sm font-medium text-gray-600">Page {page}</span>
+                    <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-md">
+                        Page <span className="text-gray-900">{page}</span>
+                    </span>
 
                     <button
                         onClick={() => setPage(page + 1)}
-                        className="px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-md hover:bg-black transition-colors"
+                        className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
                     >
                         Next
                     </button>
@@ -213,73 +221,94 @@ const ErrorLogs = () => {
             {/* Error Detail Modal */}
             {selectedError && (
 
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 sm:p-6 backdrop-blur-sm">
+                <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 p-3 sm:p-4 backdrop-blur-sm">
 
-                    <div className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto p-5 sm:p-7 rounded-xl shadow-2xl">
-
-                        <div className="flex justify-between items-center mb-5 border-b border-gray-100 pb-3">
-                            <h2 className="text-xl font-bold text-gray-900">Error Details</h2>
+                    <div 
+                        className="bg-white w-full sm:w-[95%] md:w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-2xl shadow-2xl relative animate-in fade-in zoom-in duration-200"
+                    >
+                        {/* Modal Header - Fixed at top */}
+                        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 shrink-0">
+                            <div>
+                                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Error Details</h2>
+                                <p className="text-xs text-gray-500 mt-1 hidden sm:block">Detailed diagnostic information for this request.</p>
+                            </div>
                             <button 
                                 onClick={() => setSelectedError(null)}
-                                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                                className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors focus:outline-none"
                             >
-                                &times;
+                                <span className="text-xl leading-none">&times;</span>
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">API Endpoint</p>
-                                <p className="text-sm font-mono text-blue-600 break-all">{selectedError.api}</p>
-                            </div>
-                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Method</p>
-                                <p className="text-sm font-semibold text-gray-800">{selectedError.method}</p>
-                            </div>
-                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Status Code</p>
-                                <p className="text-sm font-bold text-red-600">{selectedError.statusCode || 500}</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-sm font-bold text-gray-800 mb-2">Error Message:</p>
-                                <div className="bg-red-50 border border-red-100 p-3 text-sm text-red-700 rounded-lg whitespace-pre-wrap break-words">
-                                    {selectedError.errorMessage}
+                        {/* Modal Body - Scrollable */}
+                        <div className="p-4 sm:p-6 overflow-y-auto grow">
+                            
+                            {/* Key Value Grid */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                                <div className="bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100 col-span-2 lg:col-span-1">
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Status Code</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${selectedError.statusCode >= 500 ? 'bg-red-500' : 'bg-amber-500'}`}></div>
+                                        <p className="text-lg font-bold text-gray-900">{selectedError.statusCode || 500}</p>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100 col-span-2 lg:col-span-3">
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">API Endpoint</p>
+                                    <p className="text-sm font-mono text-blue-600 break-all">{selectedError.method} {selectedError.api}</p>
+                                </div>
+                                {/* Added IP and Time here so they aren't lost on mobile */}
+                                <div className="bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100 col-span-1">
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Client IP</p>
+                                    <p className="text-sm font-medium text-gray-800 break-all">{selectedError.ip || 'N/A'}</p>
+                                </div>
+                                <div className="bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100 col-span-1 lg:col-span-3">
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Timestamp</p>
+                                    <p className="text-sm font-medium text-gray-800">{new Date(selectedError.createdAt).toLocaleString()}</p>
                                 </div>
                             </div>
 
-                            <div>
-                                <p className="text-sm font-bold text-gray-800 mb-2">Stack Trace:</p>
-                                <pre className="bg-gray-900 text-gray-300 p-4 text-xs overflow-x-auto rounded-lg whitespace-pre-wrap break-all max-h-[300px] overflow-y-auto">
-                                    {selectedError.stack}
-                                </pre>
-                            </div>
-
-                            {selectedError.requestBody && Object.keys(selectedError.requestBody).length > 0 && (
+                            <div className="space-y-5">
                                 <div>
-                                    <p className="text-sm font-bold text-gray-800 mb-2">Request Body:</p>
-                                    <pre className="bg-gray-50 border border-gray-200 text-gray-700 p-4 text-xs rounded-lg overflow-x-auto whitespace-pre-wrap break-words">
-                                        {JSON.stringify(selectedError.requestBody, null, 2)}
-                                    </pre>
+                                    <p className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                        <span className="text-red-500">⚠️</span> Error Message
+                                    </p>
+                                    <div className="bg-red-50/50 border border-red-100 p-3.5 text-sm text-red-800 rounded-xl whitespace-pre-wrap break-words font-medium">
+                                        {selectedError.errorMessage}
+                                    </div>
                                 </div>
-                            )}
+
+                                <div>
+                                    <p className="text-sm font-bold text-gray-800 mb-2">Stack Trace</p>
+                                    <div className="relative">
+                                        <pre className="bg-[#0f172a] text-gray-300 p-4 text-[11px] sm:text-xs rounded-xl whitespace-pre-wrap break-all max-h-[250px] sm:max-h-[350px] overflow-y-auto font-mono leading-relaxed shadow-inner">
+                                            {selectedError.stack}
+                                        </pre>
+                                    </div>
+                                </div>
+
+                                {selectedError.requestBody && Object.keys(selectedError.requestBody).length > 0 && (
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-800 mb-2">Request Payload</p>
+                                        <pre className="bg-gray-50 border border-gray-200 text-gray-700 p-4 text-[11px] sm:text-xs rounded-xl overflow-x-auto whitespace-pre-wrap break-words font-mono">
+                                            {JSON.stringify(selectedError.requestBody, null, 2)}
+                                        </pre>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="mt-6 flex justify-end">
+                        {/* Modal Footer - Fixed at bottom */}
+                        <div className="p-4 sm:p-5 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl shrink-0 flex justify-end">
                             <button
                                 onClick={() => setSelectedError(null)}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors"
+                                className="w-full sm:w-auto px-8 py-2.5 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors shadow-sm"
                             >
                                 Close View
                             </button>
                         </div>
 
                     </div>
-
                 </div>
-
             )}
 
         </div>

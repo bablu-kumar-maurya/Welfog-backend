@@ -798,6 +798,78 @@ router.get("/userlikedposts/:id", async (req, res) => {
 });
 
 // get user followers and following and profile
+// router.get("/userfollowing/:id", async (req, res) => {
+//   try {
+//     const user = await User.findOne({ userid: req.params.id });
+
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     const viewerId = req.query.viewerId;
+// const isBlocked =
+//   viewer?.blockedUsers.some(id => id.toString() === user._id.toString()) ||
+//   user.blockedUsers.some(id => id.toString() === viewerId);
+
+// if (isBlocked) {
+//   return res.json({
+//     ...user.toObject(),
+//     followers: [],
+//     following: [],
+//     message: "You cannot view this user's connections"
+//   });
+// }
+
+//     // 🔹 CLEAN FOLLOWERS
+//     const validFollowers = await User.find(
+//       { _id: { $in: user.followers } },
+//       "_id",
+//     );
+//     const validFollowerIds = validFollowers.map((u) => u._id);
+
+//     // 🔹 CLEAN FOLLOWING
+//     const validFollowing = await User.find(
+//       { _id: { $in: user.following } },
+//       "_id",
+//     );
+//     const validFollowingIds = validFollowing.map((u) => u._id);
+
+//     // 🔥 UPDATE BOTH ARRAYS IN DB
+//     await User.updateOne(
+//       { _id: user._id },
+//       {
+//         $set: {
+//           followers: validFollowerIds,
+//           following: validFollowingIds,
+//         },
+//       },
+//     );
+
+//     // 🔁 FETCH CLEAN USER WITH POPULATE
+//     const cleanUser = await User.findById(user._id)
+//       .populate("followers", "userid username name profilePicture")
+//       .populate("following", "userid username name profilePicture");
+
+//       // 🛡️ Block Filter: Followers aur Following list se blocked users ko hatao
+// if (blockedList.length > 0) {
+//     // Followers filter karo
+//     cleanUser.followers = cleanUser.followers.filter(f => 
+//         !blockedList.includes(f._id.toString())
+//     );
+//     // Following filter karo
+//     cleanUser.following = cleanUser.following.filter(f => 
+//         !blockedList.includes(f._id.toString())
+//     );
+// }
+
+//     res.json(cleanUser);
+//   } catch (err) {
+//     console.error("Cleanup error:", err);
+//     err.statusCode = err.statusCode || 500;
+//     await logError(req, err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
 router.get("/userfollowing/:id", async (req, res) => {
   try {
     const user = await User.findOne({ userid: req.params.id });
@@ -807,26 +879,50 @@ router.get("/userfollowing/:id", async (req, res) => {
     }
 
     const viewerId = req.query.viewerId;
-let blockedList = [];
-if (viewerId) {
-    const viewer = await User.findById(viewerId).select("blockedUsers");
-    if (viewer) {
-        // IDs ko string mein convert kar lo comparison aasaan hoga
+
+    // 🔥 FIX: Fetch viewer (missing in your code)
+    let viewer = null;
+    let blockedList = [];
+
+    if (viewerId) {
+      viewer = await User.findById(viewerId).select("blockedUsers");
+
+      if (viewer) {
         blockedList = viewer.blockedUsers.map(id => id.toString());
+      }
     }
-}
+
+    // 🔥 FIX: Proper bi-directional block check
+    const isBlocked =
+      (viewer &&
+        viewer.blockedUsers.some(
+          id => id.toString() === user._id.toString()
+        )) ||
+      user.blockedUsers.some(
+        id => id.toString() === viewerId?.toString()
+      );
+
+    // 🔒 FULL BLOCK (Instagram style)
+    if (isBlocked) {
+      return res.json({
+        ...user.toObject(),
+        followers: [],
+        following: [],
+        message: "You cannot view this user's connections",
+      });
+    }
 
     // 🔹 CLEAN FOLLOWERS
     const validFollowers = await User.find(
       { _id: { $in: user.followers } },
-      "_id",
+      "_id"
     );
     const validFollowerIds = validFollowers.map((u) => u._id);
 
     // 🔹 CLEAN FOLLOWING
     const validFollowing = await User.find(
       { _id: { $in: user.following } },
-      "_id",
+      "_id"
     );
     const validFollowingIds = validFollowing.map((u) => u._id);
 
@@ -838,7 +934,7 @@ if (viewerId) {
           followers: validFollowerIds,
           following: validFollowingIds,
         },
-      },
+      }
     );
 
     // 🔁 FETCH CLEAN USER WITH POPULATE
@@ -846,17 +942,16 @@ if (viewerId) {
       .populate("followers", "userid username name profilePicture")
       .populate("following", "userid username name profilePicture");
 
-      // 🛡️ Block Filter: Followers aur Following list se blocked users ko hatao
-if (blockedList.length > 0) {
-    // Followers filter karo
-    cleanUser.followers = cleanUser.followers.filter(f => 
-        !blockedList.includes(f._id.toString())
-    );
-    // Following filter karo
-    cleanUser.following = cleanUser.following.filter(f => 
-        !blockedList.includes(f._id.toString())
-    );
-}
+    // 🛡️ EXISTING FILTER (unchanged)
+    if (blockedList.length > 0) {
+      cleanUser.followers = cleanUser.followers.filter(
+        (f) => !blockedList.includes(f._id.toString())
+      );
+
+      cleanUser.following = cleanUser.following.filter(
+        (f) => !blockedList.includes(f._id.toString())
+      );
+    }
 
     res.json(cleanUser);
   } catch (err) {
