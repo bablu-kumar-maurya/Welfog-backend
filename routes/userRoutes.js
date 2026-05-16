@@ -328,54 +328,84 @@ router.get("/search_populer", async (req, res) => {
     const userPage = parseInt(req.query.userPage) || 1;
     const videoPage = parseInt(req.query.videoPage) || 1;
     const userLimit = parseInt(req.query.userLimit) || 10;
-    const videoLimit = parseInt(req.query.videoLimit) || 20; // ✅ 20 videos per page
+    const videoLimit = parseInt(req.query.videoLimit) || 20;
 
     const userSkip = (userPage - 1) * userLimit;
     const videoSkip = (videoPage - 1) * videoLimit;
 
-    // 🔥 ADDED: Viewer ID fetch karna, Blocked List, aur Not Interested List nikalna
+    // 🔥 Viewer ID
     const viewerId = req.query.viewerId;
+
     let blockedList = [];
-    let notInterestedReelsList = []; // 🔥 Naya Array Add Kiya
+    let notInterestedReelsList = [];
 
     if (viewerId) {
       try {
-        // 1. Fetch Viewer for Blocked List
-        const viewer = await User.findById(viewerId).select("blockedUsers");
-        if (viewer && viewer.blockedUsers) {
-          blockedList = viewer.blockedUsers;
+
+        // ✅ Fetch Viewer
+        const viewer = await User.findById(viewerId).select(
+          "blockedUsers"
+        );
+
+        if (viewer) {
+
+          // ✅ Users blocked by viewer
+          const blockedByViewer = viewer.blockedUsers || [];
+
+          // ✅ Users who blocked viewer
+          const blockedViewerDocs = await User.find({
+            blockedUsers: viewer._id,
+          }).select("_id");
+
+          const blockedViewerIds = blockedViewerDocs.map(
+            (u) => u._id
+          );
+
+          // ✅ Merge both lists
+          blockedList = [
+            ...blockedByViewer,
+            ...blockedViewerIds,
+          ];
         }
 
-        // 🔥 2. Fetch Not Interested Reels
+        // 🔥 Not Interested Reels
         const notInterestedDocs = await ReelInteraction.find({
           user: viewerId,
-          action: "not_interested"
-        }).select("reel").lean();
-        
-        if(notInterestedDocs.length > 0) {
-            notInterestedReelsList = notInterestedDocs.map(doc => doc.reel);
+          action: "not_interested",
+        })
+          .select("reel")
+          .lean();
+
+        if (notInterestedDocs.length > 0) {
+          notInterestedReelsList = notInterestedDocs.map(
+            (doc) => doc.reel
+          );
         }
 
       } catch (err) {
         console.error(
           "Invalid Viewer ID or error fetching viewer details:",
-          err.message,
+          err.message
         );
       }
     }
 
-    // ✅ CASE 1: When query is EMPTY → Show Explore page (Trending Videos Only)
+    // ✅ CASE 1: Explore Page
     if (!query) {
       const videos = await Reel.find({
         status: "Published",
-        user: { $nin: blockedList }, // Blocked users ki reels hide
-        _id: { $nin: notInterestedReelsList } // 🔥 ADDED: Not Interested reels hide
+
+        // ✅ Hide blocked users reels both side
+        user: { $nin: blockedList },
+
+        // ✅ Hide not interested reels
+        _id: { $nin: notInterestedReelsList },
       })
         .select(
-          "userid username name videoUrl thumbnailUrl caption likes views createdAt music",
+          "userid username name videoUrl thumbnailUrl caption likes views createdAt music"
         )
         .populate("music", "title artist thumbnail")
-        .sort({ views: -1, createdAt: -1 }) // Popular & recent
+        .sort({ views: -1, createdAt: -1 })
         .skip(videoSkip)
         .limit(videoLimit);
 
@@ -391,12 +421,13 @@ router.get("/search_populer", async (req, res) => {
       });
     }
 
-    // ✅ CASE 2: query present → decide based on parameters
+    // ✅ CASE 2: Search
     const hasUserPagination = !!req.query.userPage;
     const hasVideoPagination = !!req.query.videoPage;
 
     let users = [];
     let videos = [];
+
     let hasMoreUsers = false;
     let hasMoreVideos = false;
 
@@ -405,21 +436,45 @@ router.get("/search_populer", async (req, res) => {
       users = await User.aggregate([
         {
           $match: {
-            _id: { $nin: blockedList }, // Blocked users ko search se hide
+
+            // ✅ Hide blocked users both side
+            _id: { $nin: blockedList },
+
             $or: [
-              { username: { $regex: query, $options: "i" } },
+              {
+                username: {
+                  $regex: query,
+                  $options: "i",
+                },
+              },
+
               // { name: { $regex: query, $options: "i" } },
             ],
           },
         },
+
         {
           $addFields: {
-            followersCount: { $size: { $ifNull: ["$followers", []] } },
+            followersCount: {
+              $size: {
+                $ifNull: ["$followers", []],
+              },
+            },
           },
         },
-        { $sort: { followersCount: -1, createdAt: -1, _id: 1 } },
+
+        {
+          $sort: {
+            followersCount: -1,
+            createdAt: -1,
+            _id: 1,
+          },
+        },
+
         { $skip: userSkip },
+
         { $limit: userLimit },
+
         {
           $project: {
             userid: 1,
@@ -435,34 +490,64 @@ router.get("/search_populer", async (req, res) => {
       hasMoreUsers = users.length === userLimit;
     }
 
-    // 🎬 VIDEO SEARCH (username, caption, or music)
+    // 🎬 VIDEO SEARCH
     if (hasVideoPagination) {
+
       const videoQuery = [
-        { username: { $regex: query, $options: "i" } },
-        { name: { $regex: query, $options: "i" } },
-        { caption: { $regex: query, $options: "i" } },
+        {
+          username: {
+            $regex: query,
+            $options: "i",
+          },
+        },
+
+        {
+          name: {
+            $regex: query,
+            $options: "i",
+          },
+        },
+
+        {
+          caption: {
+            $regex: query,
+            $options: "i",
+          },
+        },
       ];
 
-      // 🎵 match music
+      // 🎵 Match Music
       const matchedMusic = await Music.find({
-        title: { $regex: query, $options: "i" },
+        title: {
+          $regex: query,
+          $options: "i",
+        },
       }).select("_id");
 
       if (matchedMusic.length > 0) {
-        videoQuery.push({ music: { $in: matchedMusic.map((m) => m._id) } });
+        videoQuery.push({
+          music: {
+            $in: matchedMusic.map((m) => m._id),
+          },
+        });
       }
 
       videos = await Reel.find({
         $or: videoQuery,
+
         status: "Published",
-        user: { $nin: blockedList }, // Blocked users ki videos search se hide
-        _id: { $nin: notInterestedReelsList } // 🔥 ADDED: Not Interested reels hide
+
+        // ✅ Hide blocked users reels both side
+        user: { $nin: blockedList },
+
+        // ✅ Hide not interested reels
+        _id: { $nin: notInterestedReelsList },
       })
         .select(
-          "userid username name videoUrl thumbnailUrl caption likes views createdAt music",
+          "userid username name videoUrl thumbnailUrl caption likes views createdAt music"
         )
         .populate("music", "title artist thumbnail")
-        .sort({ views: -1, createdAt: -1 }) // Popular + newest first
+        .sort({ views: -1, createdAt: -1 })
         .skip(videoSkip)
         .limit(videoLimit);
 
@@ -479,11 +564,17 @@ router.get("/search_populer", async (req, res) => {
       userLimit,
       videoLimit,
     });
+
   } catch (err) {
     console.error("❌ Search API Error:", err);
+
     err.statusCode = err.statusCode || 500;
+
     await logError(req, err);
-    res.status(500).json({ message: "Server error" });
+
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 });
 
@@ -870,6 +961,8 @@ router.get("/userlikedposts/:id", async (req, res) => {
 //     res.status(500).json({ message: "Server error" });
 //   }
 // });
+
+
 router.get("/userfollowing/:id", async (req, res) => {
   try {
     const user = await User.findOne({ userid: req.params.id });
