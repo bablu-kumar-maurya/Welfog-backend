@@ -168,9 +168,9 @@ const UserLikedReels = () => {
           </div>
         )}
 
-        <div
+       <div
           key={page}
-          className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 ${
+          className={`grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 ${
             slideDirection === 1 ? "animate-slideUp" : "animate-slideDown"
           }`}
         >
@@ -215,12 +215,12 @@ const UserLikedReels = () => {
                 </div>
 
                 {/* DETAILS AREA */}
-                <div className="px-3 py-3 bg-white border-t border-gray-100 flex-grow space-y-2">
+                <div className="px-3 py-3 bg-white border-t border-gray-100 flex flex-col justify-between flex-grow space-y-3">
                   <p className="text-sm text-black truncate font-semibold">
                     {reel.caption || "No caption"}
                   </p>
 
-                  <div className="flex gap-4 text-xs text-gray-500">
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-500">
                     <div className="flex items-center gap-1">
                       <MdVisibility /> <span>{reel.views || 0}</span>
                     </div>
@@ -233,20 +233,20 @@ const UserLikedReels = () => {
                   </div>
 
                   {/* BUTTONS */}
-                  <div className="flex items-center justify-between pt-2">
-                    <span className={`text-[10px] font-bold uppercase ${reel.status === "Blocked" ? "text-red-500" : "text-green-600"}`}>
+                  <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-center justify-between gap-3 pt-1">
+                    <span className={`text-[10px] sm:text-xs font-bold uppercase shrink-0 ${reel.status === "Blocked" ? "text-red-500" : "text-green-600"}`}>
                       {reel.status || "Active"}
                     </span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full min-[480px]:w-auto">
                       <button
                         onClick={() => setConfirmBlockReel(reel)}
-                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-medium"
+                        className="flex-1 min-[480px]:flex-none px-2 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] sm:text-xs rounded-md font-medium text-center transition-colors"
                       >
                         {reel.status === "Blocked" ? "Unblock" : "Block"}
                       </button>
                       <button
                         onClick={() => setConfirmDeleteReel(reel)}
-                        className="px-2 py-1 bg-white border border-gray-300 text-black text-[10px] rounded hover:bg-gray-50 font-medium"
+                        className="flex-1 min-[480px]:flex-none px-2 py-1.5 bg-white border border-gray-300 text-black text-[10px] sm:text-xs rounded-md hover:bg-gray-50 font-medium text-center transition-colors"
                       >
                         Delete
                       </button>
@@ -263,7 +263,7 @@ const UserLikedReels = () => {
 
       {/* PAGINATION */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-8 pb-10">
+       <div className="flex flex-wrap items-center justify-center gap-4 mt-8 pb-10">
           <button
             disabled={page <= 1}
             onClick={() => handlePageChange(page - 1)}

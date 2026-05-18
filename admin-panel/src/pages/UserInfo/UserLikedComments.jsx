@@ -95,17 +95,17 @@ const UserLikedComments = () => {
 
   // ================= UI =================
   return (
-    <div className="space-y-6" ref={topRef}>
+   <div className="space-y-6 p-4 sm:p-6 bg-white min-h-screen" ref={topRef}>
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-gray-100 text-black rounded hover:bg-gray-200 transition"
+          className="p-2 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors"
         >
-          <MdArrowBack />
+          <MdArrowBack className="text-xl" />
         </button>
 
-        <h1 className="text-2xl font-bold text-black">
+        <h1 className="text-xl sm:text-2xl font-bold text-black">
           Liked Comments
         </h1>
       </div>
@@ -121,27 +121,25 @@ const UserLikedComments = () => {
           {paginatedList.map((comment) => (
             <div
               key={comment._id}
-              className="bg-white border border-gray-200 rounded-lg p-4"
+              className="bg-white border border-gray-200 shadow-sm rounded-lg p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <MdFavorite className="text-red-500" />
-                <span className="text-sm text-gray-500">
+                <MdFavorite className="text-red-500 shrink-0" />
+                <span className="text-xs sm:text-sm text-gray-500">
                   {new Date(comment.createdAt).toLocaleString()}
                 </span>
               </div>
 
-              <p className="text-black">{comment.text}</p>
-
-              {/* 🔥 REEL INFO + MODAL OPEN */}
+              <p className="text-black text-sm sm:text-base break-words">{comment.text}</p>
               {comment.reel && (
-                <div className="mt-2 space-y-1">
-                  <p className="text-xs text-gray-500">
-                    On Reel: {comment.reel.caption}
+                <div className="mt-3 space-y-1 bg-gray-50 p-2 rounded-md">
+                  <p className="text-xs text-gray-500 truncate">
+                    <span className="font-medium text-gray-700">On Reel:</span> {comment.reel.caption}
                   </p>
 
                   <button
                     onClick={() => handleViewReel(comment.reel._id)}
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
                   >
                     View Reel
                   </button>
@@ -149,8 +147,8 @@ const UserLikedComments = () => {
               )}
 
               {comment.user && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Comment by @{comment.user.username}
+                <p className="text-xs text-gray-500 mt-2">
+                  Comment by <span className="font-medium">@{comment.user.username}</span>
                 </p>
               )}
             </div>
@@ -158,18 +156,18 @@ const UserLikedComments = () => {
         </div>
       )}
 
-      {/* Pagination */}
+    {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-6 pb-8">
           <button
             disabled={page <= 1}
             onClick={() => handlePageChange(page - 1)}
-            className="px-4 py-2 bg-gray-100 text-black rounded disabled:opacity-30 hover:bg-gray-200 transition-all"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base rounded-lg disabled:opacity-30 hover:bg-gray-200 transition-all font-medium"
           >
             Previous
           </button>
 
-          <span className="text-sm text-gray-600">
+          <span className="text-sm sm:text-base text-gray-600">
             Page <span className="text-black font-bold">{page}</span> of{" "}
             {totalPages}
           </span>
@@ -177,18 +175,17 @@ const UserLikedComments = () => {
           <button
             disabled={page >= totalPages}
             onClick={() => handlePageChange(page + 1)}
-            className="px-4 py-2 bg-gray-100 text-black rounded disabled:opacity-30 hover:bg-gray-200 transition-all"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base rounded-lg disabled:opacity-30 hover:bg-gray-200 transition-all font-medium"
           >
             Next
           </button>
         </div>
       )}
-
       {/* ================= REEL MODAL ================= */}
+    {/* ================= REEL MODAL ================= */}
       {showReelModal && selectedReel && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-          <div className="bg-white w-[360px] rounded-xl overflow-hidden">
-
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-[360px] rounded-xl overflow-hidden shadow-2xl">
             {reelLoading ? (
               <div className="h-[420px] flex items-center justify-center">
                 <div className="spinner" />

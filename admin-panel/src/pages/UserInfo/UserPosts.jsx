@@ -180,19 +180,21 @@ const UserPosts = () => {
                 </h1>
             </div>
             {/* 📅 Date Filter */}
-            <div className="flex gap-3 flex-wrap items-center">
+
+            {/* 📅 Date Filter */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:flex-wrap items-start sm:items-center w-full">
                 <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                 />
 
                 <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                 />
 
                 <button
@@ -200,17 +202,18 @@ const UserPosts = () => {
                         setStartDate("");
                         setEndDate("");
                     }}
-                    className="text-xs font-bold text-red-500 hover:underline"
+                    className="text-sm sm:text-xs font-bold text-red-500 hover:underline py-1 sm:py-0"
                 >
                     Reset
                 </button>
             </div>
+
             {/* Spinner (first load only) */}
             {reels.length === 0 && loading && <div className="spinner" />}
 
             {/* Grid */}
             {reels.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+               <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
                     {reels.map((reel) => (
                         <div
                             key={reel._id}
@@ -259,14 +262,14 @@ const UserPosts = () => {
                             </div>
 
                             {/* ✅ FOOTER (STATS + ACTIONS) */}
-                            <div className="px-3 py-3 bg-white border-t border-gray-100 rounded-b-xl space-y-2">
+                            <div className="px-3 py-3 bg-white border-t border-gray-100 rounded-b-xl flex flex-col justify-between flex-grow space-y-3">
                                 {/* Caption */}
                                 <p className="text-sm text-black truncate font-medium">
                                     {reel.caption || "No caption"}
                                 </p>
 
                                 {/* ✅ STATS IN FOOTER */}
-                                <div className="flex gap-4 text-xs text-gray-500">
+                                <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-500">
                                     <div className="flex items-center gap-1">
                                         <MdVisibility />
                                         <span>{reel.views || 0}</span>
@@ -292,20 +295,21 @@ const UserPosts = () => {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-center justify-between gap-3 pt-1">
                                     <span
-                                        className={`text-xs font-bold uppercase ${reel.status === "Blocked"
-                                            ? "text-red-500"
-                                            : "text-green-600"
-                                            }`}
+                                        className={`text-xs font-bold uppercase shrink-0 ${
+                                            reel.status === "Blocked"
+                                                ? "text-red-500"
+                                                : "text-green-600"
+                                        }`}
                                     >
                                         {reel.status || "Active"}
                                     </span>
 
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 w-full min-[480px]:w-auto">
                                         <button
                                             onClick={() => setConfirmReel(reel)}
-                                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md font-medium"
+                                            className="flex-1 min-[480px]:flex-none px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md font-medium text-center"
                                         >
                                             {reel.status === "Blocked"
                                                 ? "Unblock"
@@ -313,10 +317,8 @@ const UserPosts = () => {
                                         </button>
 
                                         <button
-                                            onClick={() =>
-                                                setConfirmDeleteReel(reel._id)
-                                            }
-                                            className="px-3 py-1.5 bg-white hover:bg-gray-50 text-black text-xs rounded-md border border-gray-300 font-medium"
+                                            onClick={() => setConfirmDeleteReel(reel._id)}
+                                            className="flex-1 min-[480px]:flex-none px-3 py-1.5 bg-white hover:bg-gray-50 text-black text-xs rounded-md border border-gray-300 font-medium text-center"
                                         >
                                             Delete
                                         </button>

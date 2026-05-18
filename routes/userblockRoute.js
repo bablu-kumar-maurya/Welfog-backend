@@ -99,13 +99,46 @@ router.post("/unblock-user", async (req, res) => {
   }
 });
 
-// ================= MARK REEL AS INTERESTED / NOT INTERESTED =================
+
+router.get("/blocked-users/:id", async (req, res) => {
+  try {
+
+    const { id } = req.params;
+
+    // Find user
+    const user = await User.findById(id)
+      .populate("blockedUsers", "username profilePicture name userid");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      totalBlockedUsers: user.blockedUsers.length,
+      blockedUsers: user.blockedUsers
+    });
+
+  } catch (error) {
+
+    console.error("Blocked Users API Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+});
+
 
 router.post("/mark-interest", async (req, res) => {
   try {
     const { userId, reelId, action } = req.body;
 
-    // Validation
+   
     if (!userId || !reelId || !action) {
       return res.status(400).json({ message: "userId, reelId, aur action required hain." });
     }
@@ -114,12 +147,11 @@ router.post("/mark-interest", async (req, res) => {
       return res.status(400).json({ message: "Invalid action. Use 'interested' or 'not_interested'." });
     }
 
-    // 💡 UPSERT LOGIC: Agar pehle se record hai toh update karo, warna naya banao
-    // Isse duplicate entry ka tension khatam.
+  
     const interaction = await ReelInteraction.findOneAndUpdate(
-      { user: userId, reel: reelId }, // Find by user & reel
-      { action: action },             // Update the action
-      { upsert: true, new: true }     // Create new if doesn't exist
+      { user: userId, reel: reelId }, 
+      { action: action },             
+      { upsert: true, new: true }     
     );
 
     // Optional: Log analytics

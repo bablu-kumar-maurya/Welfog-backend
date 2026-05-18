@@ -109,23 +109,23 @@ const Comments = () => {
     }
   };
 
-  return (
+ return (
     <div
       ref={topRef}
-      className="space-y-6 animate-fadeIn bg-white text-gray-900 p-6"
+      className="space-y-4 sm:space-y-6 animate-fadeIn bg-white text-gray-900 p-4 sm:p-6"
     >
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
           Comments
         </h1>
-        <p className="text-gray-500">Manage all comments</p>
+        <p className="text-gray-500 text-sm sm:text-base">Manage all comments</p>
       </div>
 
-      {/* FILTER BAR */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-4 items-end">
+  {/* FILTER BAR */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-end w-full shadow-sm">
         {/* Search */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 w-full sm:flex-1">
           <label className="text-[10px] font-bold uppercase text-gray-400">Search</label>
           <input
             type="text"
@@ -133,32 +133,34 @@ const Comments = () => {
             placeholder="Search comments..."
             value={filters.search}
             onChange={handleFilterChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-48"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
           />
         </div>
 
-        {/* From */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">From</label>
-          <input
-            type="date"
-            name="startDate"
-            value={filters.startDate}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
-        </div>
+        <div className="grid grid-cols-2 sm:flex gap-4 w-full sm:w-auto">
+          {/* From */}
+          <div className="flex flex-col gap-1 w-full sm:w-36">
+            <label className="text-[10px] font-bold uppercase text-gray-400">From</label>
+            <input
+              type="date"
+              name="startDate"
+              value={filters.startDate}
+              onChange={handleFilterChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full bg-white"
+            />
+          </div>
 
-        {/* To */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase text-gray-400">To</label>
-          <input
-            type="date"
-            name="endDate"
-            value={filters.endDate}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
+          {/* To */}
+          <div className="flex flex-col gap-1 w-full sm:w-36">
+            <label className="text-[10px] font-bold uppercase text-gray-400">To</label>
+            <input
+              type="date"
+              name="endDate"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full bg-white"
+            />
+          </div>
         </div>
 
         {/* Reset */}
@@ -171,7 +173,7 @@ const Comments = () => {
             });
             setPage(1);
           }}
-          className="text-xs font-bold text-red-500 hover:text-red-700 pb-2"
+          className="text-xs font-bold text-red-500 hover:text-red-700 w-full sm:w-auto text-center sm:pb-2 pt-2 sm:pt-0 transition-colors"
         >
           Reset
         </button>
@@ -179,7 +181,7 @@ const Comments = () => {
 
       {/* Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
-        <table className="w-full">
+      <table className="w-full min-w-[800px] divide-y divide-gray-200">
           <thead className="bg-gray-100 border-b border-gray-200">
             <tr>
               <th className="px-6 py-4 text-left text-sm text-gray-600">Comment</th>
@@ -260,44 +262,44 @@ const Comments = () => {
         )}
       </div>
 
-      {/* Pagination */}
-      <div className="flex justify-center gap-4">
+   {/* Pagination */}
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-6 pb-6">
         <button
           disabled={page === 1}
           onClick={() => setPage((p) => p - 1)}
-          className="px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-50"
+          className="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base rounded-lg disabled:opacity-50 transition-colors font-medium"
         >
           Previous
         </button>
 
-        <span className="text-gray-800">
-          Page {page} of {totalPages}
+        <span className="text-gray-800 text-sm sm:text-base font-medium">
+          Page <span className="font-bold">{page}</span> of {totalPages}
         </span>
 
         <button
           disabled={page === totalPages}
           onClick={() => setPage((p) => p + 1)}
-          className="px-4 py-2 bg-gray-100 text-gray-800 rounded disabled:opacity-50"
+          className="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base rounded-lg disabled:opacity-50 transition-colors font-medium"
         >
           Next
         </button>
       </div>
 
-      {/* Delete Confirm */}
+    {/* Delete Confirm */}
       {confirmComment && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white border border-gray-200 rounded-lg p-5 w-[320px]">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 w-full max-w-[320px] shadow-2xl">
             <h3 className="text-gray-900 text-lg font-semibold mb-2">
               Delete Comment?
             </h3>
-            <p className="text-gray-600 text-sm mb-4">
+            <p className="text-gray-600 text-sm sm:text-base mb-6">
               This action cannot be undone.
             </p>
 
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmComment(null)}
-                className="px-4 py-2 bg-gray-100 text-gray-800 rounded"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors font-medium text-sm sm:text-base"
               >
                 Cancel
               </button>
@@ -306,7 +308,7 @@ const Comments = () => {
                   handleDelete(confirmComment);
                   setConfirmComment(null);
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium text-sm sm:text-base"
               >
                 Delete
               </button>
@@ -317,8 +319,8 @@ const Comments = () => {
 
       {/* 🔥 REEL MODAL */}
       {showReelModal && selectedReel && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-          <div className="bg-white w-[360px] rounded-xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-[360px] rounded-xl overflow-hidden shadow-2xl">
             {reelLoading ? (
               <div className="h-[420px] flex items-center justify-center">
                 <div className="spinner" />
@@ -331,13 +333,13 @@ const Comments = () => {
                   autoPlay
                   className="w-full h-[420px] object-cover"
                 />
-                <div className="p-3">
-                  <p className="text-gray-900 text-sm">
-                    {selectedReel.caption}
+                <div className="p-4 space-y-3">
+                  <p className="text-gray-900 text-sm break-words">
+                    {selectedReel.caption || "No caption"}
                   </p>
                   <button
                     onClick={() => setShowReelModal(false)}
-                    className="mt-3 w-full py-2 bg-red-600 rounded text-white flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 transition-colors rounded-lg text-white font-medium flex items-center justify-center gap-2"
                   >
                     Close
                   </button>

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -73,62 +72,65 @@ console.log("API Response:", res.data);
   }
 
   return (
-    <div className="space-y-6" ref={topRef}>
-      <div className="flex items-center gap-4">
+  <div className="space-y-6 p-4 sm:p-6 bg-white min-h-screen" ref={topRef}>
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-gray-100 rounded hover:bg-gray-200"
+          className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
         >
           <MdArrowBack className="text-black text-xl" />
         </button>
-        <h1 className="text-2xl font-bold text-black">
+        <h1 className="text-xl sm:text-2xl font-bold text-black">
           User Followers
         </h1>
       </div>
 
-      {/* DATE FILTER */}
-      <div className="flex flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-lg">
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-500">Start Date</label>
+     {/* DATE FILTER */}
+      <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-end bg-gray-50 p-4 rounded-lg">
+        <div className="flex flex-col w-full sm:w-auto sm:flex-1 md:flex-none">
+          <label className="text-xs text-gray-500 mb-1">Start Date</label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="border px-3 py-2 rounded"
+            className="border px-3 py-2 rounded-lg w-full bg-white"
           />
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-500">End Date</label>
+        <div className="flex flex-col w-full sm:w-auto sm:flex-1 md:flex-none">
+          <label className="text-xs text-gray-500 mb-1">End Date</label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="border px-3 py-2 rounded"
+            className="border px-3 py-2 rounded-lg w-full bg-white"
           />
         </div>
 
-        <button
-          onClick={() => {
-            setAppliedStartDate(startDate);
-            setAppliedEndDate(endDate);
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Apply Filter
-        </button>
+        {/* BUTTONS */}
+        <div className="flex flex-col min-[480px]:flex-row gap-2 w-full md:w-auto mt-2 sm:mt-0">
+          <button
+            onClick={() => {
+              setAppliedStartDate(startDate);
+              setAppliedEndDate(endDate);
+            }}
+            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 w-full min-[480px]:w-auto transition-colors"
+          >
+            Apply Filter
+          </button>
 
-        <button
-          onClick={() => {
-            setStartDate("");
-            setEndDate("");
-            setAppliedStartDate("");
-            setAppliedEndDate("");
-          }}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          Clear Filter
-        </button>
+          <button
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+              setAppliedStartDate("");
+              setAppliedEndDate("");
+            }}
+            className="px-4 py-2 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 w-full min-[480px]:w-auto transition-colors"
+          >
+            Clear Filter
+          </button>
+        </div>
       </div>
 
       {paginatedList.length === 0 ? (
@@ -141,29 +143,29 @@ console.log("API Response:", res.data);
           {paginatedList.map((follower) => {
             if (!follower) return null; // ✅ Extra safety
 
-            return (
+         return (
               <div
                 key={follower._id}
-                className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3"
+                className="flex items-center gap-3 bg-white border border-gray-200 shadow-sm rounded-lg p-3"
               >
                 {follower.profilePicture ? (
                   <img
                     src={follower.profilePicture}
                     alt={follower.username}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center shrink-0">
                     <MdPerson className="text-white" />
                   </div>
                 )}
 
-                <div>
-                  <p className="text-black font-medium">
+                <div className="min-w-0 flex-1">
+                  <p className="text-black font-medium truncate">
                     @{follower.username}
                   </p>
                   {follower.name && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 truncate">
                       {follower.name}
                     </p>
                   )}
@@ -174,24 +176,24 @@ console.log("API Response:", res.data);
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-6">
+     {totalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-6 pb-8">
           <button
             disabled={page <= 1}
             onClick={() => handlePageChange(page - 1)}
-            className="px-4 py-2 bg-gray-100 text-black rounded disabled:opacity-30 hover:bg-gray-200 transition-all"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base rounded-lg disabled:opacity-30 hover:bg-gray-200 transition-all font-medium"
           >
             Previous
           </button>
 
-          <span className="text-sm text-gray-600">
+          <span className="text-sm sm:text-base text-gray-600">
             Page <span className="text-black font-bold">{page}</span> of {totalPages}
           </span>
 
           <button
             disabled={page >= totalPages}
             onClick={() => handlePageChange(page + 1)}
-            className="px-4 py-2 bg-gray-100 text-black rounded disabled:opacity-30 hover:bg-gray-200 transition-all"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base rounded-lg disabled:opacity-30 hover:bg-gray-200 transition-all font-medium"
           >
             Next
           </button>

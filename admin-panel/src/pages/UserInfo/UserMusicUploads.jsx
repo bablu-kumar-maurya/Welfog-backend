@@ -81,17 +81,17 @@ const UserMusicUploads = () => {
   };
 
   return (
-    <div ref={topRef} className="space-y-6 animate-fadeIn bg-white min-h-screen p-6">
+  <div ref={topRef} className="space-y-6 animate-fadeIn bg-white min-h-screen p-4 sm:p-6">
 
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >
           <MdArrowBack className="text-black text-xl" />
         </button>
-        <h1 className="text-3xl font-bold text-black">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black">
           User Music Uploads
         </h1>
       </div>
@@ -105,7 +105,7 @@ const UserMusicUploads = () => {
 
       {/* GRID */}
       <div className="relative min-h-[600px]">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {music.map((track) => (
             <div
               key={track._id}
@@ -168,35 +168,36 @@ const UserMusicUploads = () => {
       </div>
 
       {/* Pagination */}
+  
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-center gap-4 mt-6 items-center">
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mt-6 pb-8 items-center">
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="px-4 py-2 bg-gray-100 text-black border border-gray-200 rounded disabled:opacity-40 hover:bg-gray-200 transition"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-200 transition font-medium"
           >
             &lt; Previous
           </button>
 
-          <span className="text-gray-700 font-medium">
+          <span className="text-gray-700 text-sm sm:text-base font-medium">
             Page {pagination.currentPage} of {pagination.totalPages}
           </span>
 
           <button
             disabled={page === pagination.totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="px-4 py-2 bg-gray-100 text-black border border-gray-200 rounded disabled:opacity-40 hover:bg-gray-200 transition"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-200 transition font-medium"
           >
             Next &gt;
           </button>
         </div>
       )}
 
-      {/* View Modal */}
+     {/* View Modal */}
       {selectedTrack && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-gray-200 shadow-2xl rounded-xl w-full max-w-[420px] p-6">
-            <h3 className="text-black font-bold text-lg mb-2">{selectedTrack.title}</h3>
+          <div className="bg-white border border-gray-200 shadow-2xl rounded-xl w-full max-w-[420px] p-4 sm:p-6">
+            <h3 className="text-black font-bold text-lg mb-2 truncate">{selectedTrack.title}</h3>
             <audio
               controls
               autoPlay
@@ -218,14 +219,14 @@ const UserMusicUploads = () => {
       {/* Delete Confirm */}
       {confirmTrack && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-gray-200 shadow-2xl rounded-lg p-6 w-full max-w-[320px]">
-            <p className="text-black font-medium mb-6">
+          <div className="bg-white border border-gray-200 shadow-2xl rounded-xl p-4 sm:p-6 w-full max-w-[320px]">
+            <p className="text-black font-medium mb-6 text-sm sm:text-base">
               This music will be permanently deleted. Are you sure?
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2 sm:gap-3">
               <button
                 onClick={() => setConfirmTrack(null)}
-                className="px-4 py-2 bg-gray-100 text-black hover:bg-gray-200 rounded transition font-medium"
+                className="px-3 sm:px-4 py-2 bg-gray-100 text-black hover:bg-gray-200 rounded-lg transition font-medium text-sm sm:text-base"
               >
                 Cancel
               </button>
@@ -234,7 +235,7 @@ const UserMusicUploads = () => {
                   handleDelete(confirmTrack);
                   setConfirmTrack(null);
                 }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition font-medium"
+                className="px-3 sm:px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium text-sm sm:text-base"
               >
                 Delete
               </button>

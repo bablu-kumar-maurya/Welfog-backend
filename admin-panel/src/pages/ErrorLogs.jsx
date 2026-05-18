@@ -52,59 +52,59 @@ const ErrorLogs = () => {
         }, 0);
     };
 
-    return (
-        <div className="p-3 sm:p-6 w-full max-w-full mx-auto box-border">
+return (
+        <div className="p-4 sm:p-6 w-full max-w-full mx-auto box-border min-h-screen bg-white">
 
             {/* Header and Filter Section */}
-            <div className="mb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-5">
+            <div className="mb-6 flex flex-col lg:flex-row items-start lg:items-end justify-between gap-5 w-full">
                 
                 {/* Page Header */}
-                <div className="shrink-0">
+                <div className="shrink-0 w-full lg:w-auto">
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">Error Logs</h1>
                     <p className="text-sm text-gray-500 mt-1">
                         Monitor backend API errors and system issues
                     </p>
                 </div>
 
-                {/* Grid-based Date Filter for better mobile alignment */}
-                <div className="w-full xl:w-auto grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-end gap-3 sm:gap-4">
+                {/* Grid-based Date Filter */}
+                <div className="w-full lg:w-auto grid grid-cols-1 sm:grid-cols-2 md:flex md:items-end gap-3 sm:gap-4">
 
-                    <div className="w-full">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+                    <div className="w-full md:w-36 lg:w-40">
+                        <label className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
                             Start Date
                         </label>
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white"
                         />
                     </div>
 
-                    <div className="w-full">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+                    <div className="w-full md:w-36 lg:w-40">
+                        <label className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
                             End Date
                         </label>
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white"
                         />
                     </div>
 
-                    {/* Buttons span full width on small screens, align normally on large */}
-                    <div className="flex gap-2 w-full sm:col-span-2 lg:w-auto mt-1 lg:mt-0">
+                    {/* Buttons */}
+                    <div className="flex gap-2 w-full sm:col-span-2 md:w-auto mt-2 sm:mt-0">
                         <button
                             onClick={applyFilter}
-                            className="flex-1 lg:flex-none px-5 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm"
+                            className="flex-1 md:flex-none px-5 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm"
                         >
                             Apply
                         </button>
 
                         <button
                             onClick={resetFilter}
-                            className="flex-1 lg:flex-none px-5 py-2 bg-gray-100 text-gray-700 font-medium border border-gray-300 rounded-lg text-sm hover:bg-gray-200 transition-colors whitespace-nowrap shadow-sm"
+                            className="flex-1 md:flex-none px-5 py-2 bg-gray-100 text-gray-700 font-medium border border-gray-300 rounded-lg text-sm hover:bg-gray-200 transition-colors whitespace-nowrap shadow-sm"
                         >
                             Reset
                         </button>
@@ -117,7 +117,7 @@ const ErrorLogs = () => {
             <div className="bg-white shadow-sm rounded-xl border border-gray-200 w-full overflow-hidden">
 
                 <div className="overflow-x-auto w-full">
-                    <table className="min-w-full text-sm text-left whitespace-nowrap">
+                  <table className="w-full min-w-[900px] text-sm text-left whitespace-nowrap">
 
                         <thead className="bg-gray-50/80 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
                             <tr>
@@ -193,24 +193,26 @@ const ErrorLogs = () => {
                     </table>
                 </div>
 
-                {/* Pagination */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3.5 bg-gray-50/50 border-t border-gray-200">
+              {/* Pagination */}
+                <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 px-4 py-3.5 bg-gray-50/50 border-t border-gray-200">
 
                     <button
                         onClick={() => setPage(page - 1)}
                         disabled={page === 1}
-                        className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                        className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm order-2 sm:order-1"
                     >
                         Previous
                     </button>
 
-                    <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-md">
-                        Page <span className="text-gray-900">{page}</span>
-                    </span>
+                    <div className="w-full sm:w-auto flex justify-center order-1 sm:order-2 mb-2 sm:mb-0">
+                        <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-md">
+                            Page <span className="text-gray-900 font-bold">{page}</span>
+                        </span>
+                    </div>
 
                     <button
                         onClick={() => setPage(page + 1)}
-                        className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
+                        className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm order-3"
                     >
                         Next
                     </button>
@@ -218,13 +220,13 @@ const ErrorLogs = () => {
                 </div>
             </div>
 
-            {/* Error Detail Modal */}
+          {/* Error Detail Modal */}
             {selectedError && (
 
-                <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 p-3 sm:p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
 
                     <div 
-                        className="bg-white w-full sm:w-[95%] md:w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-2xl shadow-2xl relative animate-in fade-in zoom-in duration-200"
+                        className="bg-white w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl relative animate-in fade-in zoom-in duration-200"
                     >
                         {/* Modal Header - Fixed at top */}
                         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 shrink-0">

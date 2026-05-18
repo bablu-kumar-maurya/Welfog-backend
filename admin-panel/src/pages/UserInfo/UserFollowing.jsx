@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -23,7 +21,6 @@ const UserFollowing = () => {
     }
   }, [userId]);
 
-  // Swapped: use "followers" API so correct data shows in Following tab (fixes backend swap)
   const fetchFollowing = async () => {
     try {
       setLoading(true);
@@ -60,17 +57,17 @@ const UserFollowing = () => {
   }
 
   return (
-    <div className="space-y-6" ref={topRef}>
+  <div className="space-y-6 p-4 sm:p-6 bg-white min-h-screen" ref={topRef}>
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-gray-100 rounded hover:bg-gray-200"
+          className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
         >
           <MdArrowBack className="text-black text-xl" />
         </button>
 
-        <h1 className="text-2xl font-bold text-black">
+        <h1 className="text-xl sm:text-2xl font-bold text-black">
           User Following
         </h1>
       </div>
@@ -84,56 +81,59 @@ const UserFollowing = () => {
       ) : (
         <div className="space-y-3">
           {paginatedList.map((user) => (
-            <div
+
+           <div
               key={user._id}
-              className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3"
+              className="flex items-center gap-3 bg-white border border-gray-200 shadow-sm rounded-lg p-3"
             >
               {user.profilePicture ? (
                 <img
                   src={user.profilePicture}
                   alt={user.username}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover shrink-0"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center shrink-0">
                   <MdPerson className="text-white" />
                 </div>
               )}
 
-              <div>
-                <p className="text-black font-medium">
+              <div className="min-w-0 flex-1">
+                <p className="text-black font-medium truncate">
                   @{user.username}
                 </p>
                 {user.name && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 truncate">
                     {user.name}
                   </p>
                 )}
               </div>
             </div>
+
           ))}
         </div>
       )}
 
-      {/* Pagination - no loading between pages (smooth jump) */}
+    
+   
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-6 pb-8">
           <button
             disabled={page <= 1}
             onClick={() => handlePageChange(page - 1)}
-            className="px-4 py-2 bg-gray-100 text-black rounded disabled:opacity-30 hover:bg-gray-200 transition-all"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base rounded-lg disabled:opacity-30 hover:bg-gray-200 transition-all font-medium"
           >
             Previous
           </button>
 
-          <span className="text-sm text-gray-600">
+          <span className="text-sm sm:text-base text-gray-600">
             Page <span className="text-black font-bold">{page}</span> of {totalPages}
           </span>
 
           <button
             disabled={page >= totalPages}
             onClick={() => handlePageChange(page + 1)}
-            className="px-4 py-2 bg-gray-100 text-black rounded disabled:opacity-30 hover:bg-gray-200 transition-all"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-black text-sm sm:text-base rounded-lg disabled:opacity-30 hover:bg-gray-200 transition-all font-medium"
           >
             Next
           </button>
