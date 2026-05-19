@@ -1464,25 +1464,36 @@ router.get("/shownew", async (req, res) => {
 
         // 🔥 ADDED: BLOCK FILTER & NOT INTERESTED LOGIC START 🔥
         if (mongoose.isValidObjectId(currentUserId)) {
-            // 1. Viewer ne kisko block kiya
-            const viewer = await User.findById(currentUserId).select("blockedUsers").lean();
+            
+            // 1. Viewer ko fetch karo aur isDeleted bhi select karo
+            const viewer = await User.findById(currentUserId).select("blockedUsers isDeleted").lean();
+            
+            // ✨ NAYI LINE: Agar dekhne wala (viewer) khud deleted hai, toh seedha block karo ✨
+            if (viewer && viewer.isDeleted) {
+                return res.status(403).json({ message: "Your account is deleted. Access denied." });
+            }
+
             const blockedList = viewer?.blockedUsers || [];
             
             // 2. Kisko viewer ne block kiya hai (Reverse lookup)
             const blockers = await User.find({ blockedUsers: currentUserId }).select("_id").lean();
             const usersWhoBlockedMe = blockers.map(b => b._id);
             
-            // 3. Combined Block List
-            const allBlocked = [...blockedList, ...usersWhoBlockedMe];
+            // 3. Deleted users ko find karna (Soft Delete Logic)
+            const deletedUsers = await User.find({ isDeleted: true }).select("_id").lean();
+            const deletedUserIds = deletedUsers.map(u => u._id);
+            
+            // 4. Combined Exclude List (Blocked by me + Blocked me + Deleted Accounts)
+            const allExcludedUsers = [...blockedList, ...usersWhoBlockedMe, ...deletedUserIds];
 
-            if (allBlocked.length > 0) {
-                matchStage.user = { $nin: allBlocked }; // In logo ki reels feed mein mat dikhao
+            if (allExcludedUsers.length > 0) {
+                matchStage.user = { $nin: allExcludedUsers }; // In logo ki reels feed mein mat dikhao
             }
             
             // Feed mein admin wali blocked reels na aayein (safety check)
             matchStage.status = { $ne: "Blocked" };
 
-            // 🔥 4. NOT INTERESTED LOGIC ADDED HERE
+            // 🔥 5. NOT INTERESTED LOGIC ADDED HERE
             const notInterestedInteractions = await ReelInteraction.find({
                 user: currentUserId,
                 action: "not_interested"

@@ -23,7 +23,6 @@ const ReelInteraction = require('../models/ReelInteraction');
 
 router.post("/", async (req, res) => {
   try {
-    // ✅ added isConnected in destructuring
     let {
       userid,
       mobile,
@@ -37,12 +36,10 @@ router.post("/", async (req, res) => {
       isConnected,
     } = req.body;
 
-    // ✅ Mobile is required
     if (!mobile) {
       return res.status(400).json({ message: "Mobile number is required" });
     }
 
-    // 🔹 Normalize mobile to a standard 10-digit format
     mobile = mobile.replace(/\D/g, "");
 
     if (!username) {
@@ -58,10 +55,8 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // ✅ Check if user already exists by mobile
     let existingUser = await User.findOne({ mobile });
 
-    // 🔥 UNIQUE CHECK: seller_id and userseller_id check before saving/updating
     if (seller_id) {
       const duplicateSeller = await User.findOne({
         seller_id,
@@ -84,19 +79,26 @@ router.post("/", async (req, res) => {
       }
     }
 
+    // ==========================================
+    // 1. EXISTING USER LOGIC (ACCOUNT RECOVERY)
+    // ==========================================
     if (existingUser) {
+      // ✨ NAYI LINE: Agar account soft-delete tha, toh usko recover karo
+      if (existingUser.isDeleted) {
+        existingUser.isDeleted = false;
+        existingUser.deletedAt = null;
+      }
+
       if (name) existingUser.name = name;
       if (email) existingUser.email = email;
       if (profilePicture) existingUser.profilePicture = profilePicture;
       if (bio) existingUser.bio = bio;
 
-      // ✅ Update connection status
       if (typeof isConnected !== "undefined") {
         existingUser.isConnected = isConnected;
         existingUser.lastConnectedAt = new Date();
       }
 
-      // Update seller IDs if provided
       if (seller_id) existingUser.seller_id = seller_id;
       if (userseller_id) existingUser.userseller_id = userseller_id;
 
@@ -108,7 +110,7 @@ router.post("/", async (req, res) => {
         userid: existingUser.userid,
         username: existingUser.username,
         name: existingUser.name,
-        isConnected: existingUser.isConnected, // ✅ added in response
+        isConnected: existingUser.isConnected,
         seller_id: existingUser.seller_id,
         userseller_id: existingUser.userseller_id,
         mobile: existingUser.mobile,
@@ -122,13 +124,15 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Check if username is taken (for New User)
     const existingUsername = await User.findOne({ username });
     if (existingUsername) {
       return res.status(400).json({ message: "Username already taken" });
     }
 
-    // ✅ Create new user
+    // ==========================================
+    // 2. NEW USER LOGIC (FIX FOR DUPLICATE ERROR)
+    // ==========================================
+    // ✨ YAHAN SE default empty string ("") hata diya gaya hai
     const newUser = new User({
       userid: uuidv4(),
       mobile,
@@ -137,10 +141,12 @@ router.post("/", async (req, res) => {
       email: email || "",
       profilePicture: profilePicture || "",
       bio: bio || "",
-      isConnected: isConnected || false, // ✅ added here
-      seller_id: seller_id || "",
-      userseller_id: userseller_id || "",
+      isConnected: isConnected || false,
     });
+
+    // ✨ YAHAN CONDITION LAGAYI HAI (Sirf tabhi add hoga jab value aayegi)
+    if (seller_id) newUser.seller_id = seller_id;
+    if (userseller_id) newUser.userseller_id = userseller_id;
 
     const savedUser = await newUser.save();
 
@@ -150,7 +156,7 @@ router.post("/", async (req, res) => {
       userid: savedUser.userid,
       username: savedUser.username,
       name: savedUser.name,
-      isConnected: savedUser.isConnected, // ✅ added in response
+      isConnected: savedUser.isConnected,
       seller_id: savedUser.seller_id,
       userseller_id: savedUser.userseller_id,
       mobile: savedUser.mobile,
@@ -432,14 +438,14 @@ router.get("/search_populer", async (req, res) => {
     let hasMoreVideos = false;
 
     // 🔍 USER SEARCH
-    if (hasUserPagination) {
+if (hasUserPagination) {
       users = await User.aggregate([
         {
           $match: {
+            isDeleted: { $ne: true }, 
 
             // ✅ Hide blocked users both side
             _id: { $nin: blockedList },
-
             $or: [
               {
                 username: {
@@ -585,7 +591,7 @@ router.get("/:id", async (req, res) => {
     const viewerId = req.query.viewerId;
 
     // 1. Fetch user
-    const user = await User.findOne({ userid: id }).select("-passwordHash");
+  const user = await User.findOne({ userid: id, isDeleted: { $ne: true } }).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 2. 🛡️ Block Check Logic (Solid Version)
@@ -642,7 +648,7 @@ router.get("/userpost/:id", async (req, res) => {
     if (skip < 0) skip = 0;
 
     // 👤 Fetch user
-    const user = await User.findById(userId).select("-passwordHash");
+    const user = await User.findOne({ _id: userId, isDeleted: { $ne: true } }).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 🔒 BLOCK CHECK
@@ -888,84 +894,11 @@ router.get("/userlikedposts/:id", async (req, res) => {
   }
 });
 
-// get user followers and following and profile
-// router.get("/userfollowing/:id", async (req, res) => {
-//   try {
-//     const user = await User.findOne({ userid: req.params.id });
-
-//     if (!user) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-
-//     const viewerId = req.query.viewerId;
-// const isBlocked =
-//   viewer?.blockedUsers.some(id => id.toString() === user._id.toString()) ||
-//   user.blockedUsers.some(id => id.toString() === viewerId);
-
-// if (isBlocked) {
-//   return res.json({
-//     ...user.toObject(),
-//     followers: [],
-//     following: [],
-//     message: "You cannot view this user's connections"
-//   });
-// }
-
-//     // 🔹 CLEAN FOLLOWERS
-//     const validFollowers = await User.find(
-//       { _id: { $in: user.followers } },
-//       "_id",
-//     );
-//     const validFollowerIds = validFollowers.map((u) => u._id);
-
-//     // 🔹 CLEAN FOLLOWING
-//     const validFollowing = await User.find(
-//       { _id: { $in: user.following } },
-//       "_id",
-//     );
-//     const validFollowingIds = validFollowing.map((u) => u._id);
-
-//     // 🔥 UPDATE BOTH ARRAYS IN DB
-//     await User.updateOne(
-//       { _id: user._id },
-//       {
-//         $set: {
-//           followers: validFollowerIds,
-//           following: validFollowingIds,
-//         },
-//       },
-//     );
-
-//     // 🔁 FETCH CLEAN USER WITH POPULATE
-//     const cleanUser = await User.findById(user._id)
-//       .populate("followers", "userid username name profilePicture")
-//       .populate("following", "userid username name profilePicture");
-
-//       // 🛡️ Block Filter: Followers aur Following list se blocked users ko hatao
-// if (blockedList.length > 0) {
-//     // Followers filter karo
-//     cleanUser.followers = cleanUser.followers.filter(f => 
-//         !blockedList.includes(f._id.toString())
-//     );
-//     // Following filter karo
-//     cleanUser.following = cleanUser.following.filter(f => 
-//         !blockedList.includes(f._id.toString())
-//     );
-// }
-
-//     res.json(cleanUser);
-//   } catch (err) {
-//     console.error("Cleanup error:", err);
-//     err.statusCode = err.statusCode || 500;
-//     await logError(req, err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
 
 
 router.get("/userfollowing/:id", async (req, res) => {
   try {
-    const user = await User.findOne({ userid: req.params.id });
+   const user = await User.findOne({ userid: req.params.id, isDeleted: { $ne: true } });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -1006,20 +939,13 @@ router.get("/userfollowing/:id", async (req, res) => {
     }
 
     // 🔹 CLEAN FOLLOWERS
-    const validFollowers = await User.find(
-      { _id: { $in: user.followers } },
-      "_id"
-    );
+   const validFollowers = await User.find({ _id: { $in: user.followers }, isDeleted: { $ne: true } }, "_id");
     const validFollowerIds = validFollowers.map((u) => u._id);
 
-    // 🔹 CLEAN FOLLOWING
-    const validFollowing = await User.find(
-      { _id: { $in: user.following } },
-      "_id"
-    );
+    
+    const validFollowing = await User.find({ _id: { $in: user.following }, isDeleted: { $ne: true } }, "_id");
     const validFollowingIds = validFollowing.map((u) => u._id);
 
-    // 🔥 UPDATE BOTH ARRAYS IN DB
     await User.updateOne(
       { _id: user._id },
       {
@@ -1059,9 +985,7 @@ router.get("/bymobile/:mobile", async (req, res) => {
   try {
     const viewerId = req.query.viewerId; // 🔥 Viewer ID frontend se
 
-    const user = await User.findOne({ mobile: req.params.mobile }).select(
-      "-passwordHash",
-    );
+  const user = await User.findOne({ mobile: req.params.mobile, isDeleted: { $ne: true } }).select("-passwordHash");
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -1090,7 +1014,7 @@ router.get("/bymobile/:mobile", async (req, res) => {
 // find user by email
 router.get("/byemailapp/:email", async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.params.email });
+  const user = await User.findOne({ email: req.params.email, isDeleted: { $ne: true } });
 
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
@@ -1106,50 +1030,49 @@ router.delete("/:id", async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // 1. User ko dhoondo delete karne se pehle taaki uska naam mil sake
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 2. Naam ko variable mein save karo (Delete hone ke baad ye nahi milega)
-    const deletedUserName =
-      user.userName || user.username || user.name || "Unknown User";
+    if (user.isDeleted) {
+      return res.status(400).json({ 
+        message: "Account is already scheduled for deletion." 
+      });
+    }
+
+    const deletedUserName = user.userName || user.username || user.name || "Unknown User";
+
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    await user.save();
 
     await Promise.all([
-      // Delete all reels of this user
-      Reel.deleteMany({ user: userId }),
+     
+      Reel.updateMany(
+        { likes: userId }, 
+        { $pull: { likes: userId } }
+      ),
 
-      // Delete all comments of this user
-      Comment.deleteMany({ user: userId }),
+      Reel.updateMany(
+        { viewsdata: userId }, 
+        { 
+          $pull: { viewsdata: userId }, 
+          $inc: { views: -1 } 
+        }
+      ),
 
-      // Remove user from followers/following of other users
       User.updateMany({ followers: userId }, { $pull: { followers: userId } }),
-      User.updateMany({ following: userId }, { $pull: { following: userId } }),
-
-      // Remove user from likes/shares of Reels
-      Reel.updateMany({ likes: userId }, { $pull: { likes: userId } }),
-      Reel.updateMany(
-        { "shares.sharedBy": userId },
-        { $pull: { shares: { sharedBy: userId } } },
-      ),
-      Reel.updateMany(
-        { "shares.sharedTo": userId },
-        { $pull: { shares: { sharedTo: userId } } },
-      ),
+      User.updateMany({ following: userId }, { $pull: { following: userId } })
     ]);
 
-    // Actual user deletion
-    await user.deleteOne();
-
     try {
-      // 3. logUserAction mein targetName pass kiya
       await logUserAction({
         user: req.user._id,
         userName: req.userName,
         userRole: req.userRole,
-        action: "delete_user",
+        action: "soft_delete_user", 
         targetType: "User",
-        targetId: userId, // Jisko delete kiya uski ID
-        targetName: deletedUserName, // ✅ Jisko delete kiya uska NAAM
+        targetId: userId, 
+        targetName: deletedUserName, 
         device: req.headers["user-agent"],
         location: {
           ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
@@ -1157,17 +1080,21 @@ router.delete("/:id", async (req, res) => {
         },
       });
     } catch (e) {
-      console.error("Delete user log error:", e.message);
+      console.error("Soft delete user log error:", e.message);
     }
 
-    // Response mein bhi naam dikhao taaki confirmation mile
+    const thirtyDaysLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
     res.json({
-      message: `User ${deletedUserName} and all related data deleted successfully`,
+      message: `Account deactivated successfully.`,
+      details: `Your account will be permanently deleted on ${thirtyDaysLater.toDateString()}. If you log in before this date, your account will be restored.`,
+      scheduledDeletionDate: thirtyDaysLater
     });
+
   } catch (err) {
-    console.error("Error deleting user:", err);
+    console.error("Error softly deleting user:", err);
     err.statusCode = err.statusCode || 500;
-    await logError(req, err);
+    await logError(req, err); 
     res.status(500).json({ message: "Server error" });
   }
 });

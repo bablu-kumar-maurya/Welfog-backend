@@ -154,9 +154,11 @@ router.get("/",  async (req, res) => {
     const query = {};
 
     // ✅ Search Filter
-  if (search) {
+    if (search) {
+      // ✨ NAYI LINE: Search mein deleted user include na ho
       const users = await User.find({
-        username: { $regex: search, $options: "i" }
+        username: { $regex: search, $options: "i" },
+        isDeleted: { $ne: true } 
       }).select("_id");
 
       const userIds = users.map(u => u._id);
@@ -184,26 +186,31 @@ router.get("/",  async (req, res) => {
 
     const totalComments = await Comment.countDocuments(query);
 
- // 1. Fetch more than the limit temporarily to account for filtered nulls
-const rawComments = await Comment.find(query)
-  .populate("user", "userid username name profilePicture")
-  .populate("reel", "caption")
-  .sort({ createdAt: -1 })
-  .skip(skip)
-  .limit(limit);
+    // 1. Fetch more than the limit temporarily to account for filtered nulls
+    // ✨ NAYI LINE: Populate mein match lagaya taaki deleted users null ban jayein
+    const rawComments = await Comment.find(query)
+      .populate({
+        path: "user",
+        select: "userid username name profilePicture",
+        match: { isDeleted: { $ne: true } } 
+      })
+      .populate("reel", "caption")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-// 2. 🔥 EXACT FIX: Filter out comments where user is null
-const validComments = rawComments.filter(comment => comment.user !== null);
+    // 2. 🔥 EXACT FIX: Filter out comments where user is null (Deleted users yahan hat jayenge)
+    const validComments = rawComments.filter(comment => comment.user !== null);
 
-// 3. Send the filtered list
-res.status(200).json({
-  success: true,
-  page,
-  limit,
-  totalComments,
-  totalPages: Math.ceil(totalComments / limit),
-  comments: validComments, // ✅ This ensures no "null" users reach your app
-});
+    // 3. Send the filtered list
+    res.status(200).json({
+      success: true,
+      page,
+      limit,
+      totalComments,
+      totalPages: Math.ceil(totalComments / limit),
+      comments: validComments, // ✅ This ensures no "null" or "deleted" users reach your app
+    });
 
   } catch (error) {
     console.error("Error fetching comments:", error);
@@ -212,6 +219,7 @@ res.status(200).json({
     res.status(500).json({ success: false, message: "Error fetching data" });
   }
 });
+
 // admin get all comments with search and filter
 router.get("/admin-view", adminAuth, checkPermission("VIEW_COMMENTS"), async (req, res) => {
   try {

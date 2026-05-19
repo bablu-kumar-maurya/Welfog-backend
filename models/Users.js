@@ -12,19 +12,21 @@ const userSchema = new mongoose.Schema({
     default: uuidv4,
   },
 
-  // 🔥 SELLER FIELDS ADDED
+  // 🔥 SELLER FIELDS FIXED (Removed default: "")
   seller_id: {
     type: String,
-    default: "",
-    unique: true, // Ek seller_id sirf ek user ki ho sakti hai
-    sparse: true, // Bahut zaroori! Taaki jinke paas ID nahi hai (empty string), unme conflict na ho
+    unique: true, 
+    sparse: true, 
   },
   userseller_id: {
     type: String,
-    default: "",
-    unique: true, // Ek userseller_id sirf ek user ki ho sakti hai
-    sparse: true, // Taaki multiple empty strings allow ho sakein
+    unique: true, 
+    sparse: true, 
   },
+
+  // ✅ SOFT DELETE FIELDS ADDED
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
 
   name: { type: String, default: "" },
   username: { type: String, unique: true, required: true },
@@ -37,7 +39,7 @@ const userSchema = new mongoose.Schema({
 
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User4" }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User4" }],
-  // User Schema (User4) mein ye add karein:
+  
   isConnected: {
     type: Boolean,
     default: false,
@@ -49,13 +51,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-
-  suspendReason: {
-    type: String,
-    default: "",
-  },
-
-
   suspendedBy: {
     type: String,
     ref: "Admin",
@@ -69,7 +64,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // ================= SYNC USER DATA TO REELS =================
-
 userSchema.pre("save", async function (next) {
   if (
     !this.isModified("username") &&
@@ -82,19 +76,16 @@ userSchema.pre("save", async function (next) {
 
   try {
     const Reel = mongoose.model("Reel4test");
-
     const update = {};
 
     if (this.isModified("username")) update.username = this.username;
     if (this.isModified("name")) update.name = this.name;
     if (this.isModified("seller_id")) update.seller_id = this.seller_id;
-    if (this.isModified("userseller_id"))
-      update.userseller_id = this.userseller_id;
+    if (this.isModified("userseller_id")) update.userseller_id = this.userseller_id;
 
     if (!Object.keys(update).length) return next();
 
     const result = await Reel.updateMany({ user: this._id }, { $set: update });
-
     console.log("✅ Reels matched:", result.matchedCount);
     console.log("✅ Reels modified:", result.modifiedCount);
 
@@ -106,7 +97,6 @@ userSchema.pre("save", async function (next) {
 });
 
 // ================= GENERATE UNIQUE USERNAME =================
-
 userSchema.statics.generateUniqueUsername = async function () {
   let isUnique = false;
   let newUsername = "";
@@ -116,16 +106,13 @@ userSchema.statics.generateUniqueUsername = async function () {
     const existing = await this.findOne({ username: newUsername });
     if (!existing) isUnique = true;
   }
-
   return newUsername;
 };
 
 // ================= SYNC USERID ACROSS MODELS =================
-
 userSchema.pre("save", async function (next) {
   try {
     if (!this.isNew) return next();
-
     if (!this.userid) this.userid = uuidv4();
 
     const Reel = mongoose.model("Reel4test");
@@ -140,7 +127,6 @@ userSchema.pre("save", async function (next) {
         { $set: { userid: this.userid } },
       );
     }
-
     next();
   } catch (err) {
     console.error("❌ Error syncing userid across models:", err);
