@@ -19,7 +19,6 @@ const roleSchema = new mongoose.Schema(
     timestamps: true, 
   }
 );
-
 const adminSchema = new mongoose.Schema(
   {
     username: {
@@ -28,12 +27,10 @@ const adminSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-
     password: {
       type: String,
       required: true,
     },
-
     email: {
       type: String,
       required: true,
@@ -41,30 +38,23 @@ const adminSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
-
-    // 🔥 login type (for future admin/staff login)
     role: {
       type: String,
       enum: ["admin", "superadmin"],
       default: "admin",
     },
-
-  
     roles: {
       type: [roleSchema],
       default: [],
     },
-
     profileImage: {
       type: String,
       default: null,
     },
-
     siteName: {
       type: String,
       default: 'Welfog Internet Private Limited',
     },
-    
     maintenanceMode: {
       type: Boolean,
       default: false,
@@ -82,8 +72,17 @@ const adminSchema = new mongoose.Schema(
       enum: ['low', 'medium', 'high'],
       default: 'high',
     },
-
     lastLogin: Date,
+
+    // 👇 Yahan ye dono fields add karni hain
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    }
   },
   { timestamps: true }
 );

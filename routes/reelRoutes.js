@@ -1311,7 +1311,7 @@ router.get(
 router.get(
   "/admin_reels",
   adminAuth,
-    checkPermission("VIEW_REELS"),
+  checkPermission("VIEW_REELS"),
   async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -1326,20 +1326,36 @@ router.get(
       // ✅ BUILD QUERY
       const query = {};
 
-      // 🔍 SEARCH FILTER
-      if (search) {
-        query.$or = [
-    { caption: { $regex: search, $options: "i" } },
-    { username: { $regex: search, $options: "i" } }
-  ];
+      // 🔥 1. DEFAULT FILTER: Hamesha Deleted Users ki reels hide karo
+      // Iske liye ab frontend se 'activeUsersOnly' bhejne ki zaroorat nahi hai.
+      const activeUsers = await User.find({ isDeleted: { $ne: true } }).select("_id");
+      const activeUserIds = activeUsers.map(user => user._id);
+      
+      // Reel sirf active users ki hi aayegi
+      query.user = { $in: activeUserIds };
+
+      // 🔥 2. DEFAULT FILTER: Hamesha Soft Deleted Reels ko hide karo
+      // Agar aap status explicitly "deleted" bhejte ho tabhi dikhega
+      if (status === "deleted") {
+        query.isDeleted = true;
+      } else {
+        query.isDeleted = { $ne: true }; 
       }
 
-      // 🎯 STATUS FILTER
-      if (status !== "all") {
+      // 🔍 3. SEARCH FILTER
+      if (search) {
+        query.$or = [
+          { caption: { $regex: search, $options: "i" } },
+          { username: { $regex: search, $options: "i" } }
+        ];
+      }
+
+      // 🎯 4. STATUS FILTER (Agar status 'deleted' ya 'all' ke alawa kuch aur hai jaise 'active')
+      if (status !== "all" && status !== "deleted") {
         query.status = status;
       }
 
-      // 📅 DATE RANGE FILTER
+      // 📅 5. DATE RANGE FILTER
       if (startDate || endDate) {
         query.createdAt = {};
 

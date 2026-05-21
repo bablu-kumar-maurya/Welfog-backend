@@ -226,29 +226,44 @@ router.get("/admin-view", adminAuth, checkPermission("VIEW_COMMENTS"), async (re
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
     const search = req.query.search || "";
+    const status = req.query.status || "all"; // Naya status parameter add kiya
     const startDate = req.query.startDate || "";
     const endDate = req.query.endDate || "";
-
+    
     const skip = (page - 1) * limit;
 
     // 🔍 Build Query Object
     const query = {};
 
-    // ✅ Search Filter
-  if (search) {
-      const users = await User.find({
-        username: { $regex: search, $options: "i" }
+    // 🔥 1. DEFAULT FILTER: Hamesha active users ke comments hi dikhao
+    // Delete ho chuke users ke comments hamesha ke liye hide rahenge
+    const activeUsers = await User.find({ isDeleted: { $ne: true } }).select("_id");
+    const activeUserIds = activeUsers.map(u => u._id);
+    query.user = { $in: activeUserIds };
+
+    // 🔥 2. DEFAULT FILTER: Hamesha Soft Deleted Comments ko hide karo
+    if (status === "deleted") {
+      query.isDeleted = true; // Agar admin deliberately deleted comments dekhna chahe
+    } else {
+      query.isDeleted = { $ne: true }; // Default me hamesha hide rahenge
+    }
+
+    // ✅ 3. Search Filter
+    if (search) {
+      const searchUsers = await User.find({
+        username: { $regex: search, $options: "i" },
+        isDeleted: { $ne: true } // Search me bhi deleted users na aayein
       }).select("_id");
 
-      const userIds = users.map(u => u._id);
+      const searchUserIds = searchUsers.map(u => u._id);
 
       query.$or = [
         { text: { $regex: search, $options: "i" } },
-        { user: { $in: userIds } }
+        { user: { $in: searchUserIds } }
       ];
     }
 
-    // ✅ Date Range Filter
+    // ✅ 4. Date Range Filter
     if (startDate || endDate) {
       query.createdAt = {};
 
@@ -288,7 +303,8 @@ router.get("/admin-view", adminAuth, checkPermission("VIEW_COMMENTS"), async (re
     res.status(500).json({ success: false, message: "Error fetching data" });
   }
 });
-// 🔥 GET all comments of a specific user(admin)
+
+
 router.get("/user/:userid", adminAuth ,  async (req, res) => {
   try {
     const { userid } = req.params;

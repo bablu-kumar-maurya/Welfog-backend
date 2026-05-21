@@ -16,8 +16,8 @@ const adminAuth = require("../middleware/adminAuth");
 const checkPermission = require("../middleware/checkPermission");
 const logError = require("../utils/logError");
 const axios = require("axios");
-const mongoose = require("mongoose"); 
-const ReelInteraction = require('../models/ReelInteraction');
+const mongoose = require("mongoose");
+const ReelInteraction = require("../models/ReelInteraction");
 
 // create new user
 
@@ -87,6 +87,12 @@ router.post("/", async (req, res) => {
       if (existingUser.isDeleted) {
         existingUser.isDeleted = false;
         existingUser.deletedAt = null;
+        
+        // ✅ NAYA CODE: USER KE COMMENTS BHI WAPAS RECOVER KARO
+        await Comment.updateMany(
+          { user: existingUser._id },
+          { $set: { isDeleted: false, deletedAt: null } }
+        );
       }
 
       if (name) existingUser.name = name;
@@ -134,7 +140,7 @@ router.post("/", async (req, res) => {
     // ==========================================
     // ✨ YAHAN SE default empty string ("") hata diya gaya hai
     const newUser = new User({
-      userid: uuidv4(),
+      userid: uuidv4(), // Dhyan rahe uuidv4 imported ho
       mobile,
       username,
       name: name || "",
@@ -268,7 +274,15 @@ router.get(
       // 🔍 Build Query Object
       const query = {};
 
-      // ✅ Search Filter
+      // ✅ 1. Soft Delete Filter (NAYA CODE)
+      // Agar status explicitly "deleted" nahi hai, toh deleted users ko hide rakho
+      if (status === "deleted") {
+        query.isDeleted = true;
+      } else {
+        query.isDeleted = { $ne: true }; 
+      }
+
+      // ✅ 2. Search Filter
       if (search) {
         query.$or = [
           { username: { $regex: search, $options: "i" } },
@@ -278,16 +292,14 @@ router.get(
         ];
       }
 
-      // ✅ Status Filter
+      // ✅ 3. Status Filter (Active / Suspended)
       if (status === "active") {
         query.isSuspended = false;
-      }
-
-      if (status === "suspended") {
+      } else if (status === "suspended") {
         query.isSuspended = true;
       }
 
-      // ✅ Date Range Filter
+      // ✅ 4. Date Range Filter
       if (startDate || endDate) {
         query.createdAt = {};
 
@@ -347,14 +359,10 @@ router.get("/search_populer", async (req, res) => {
 
     if (viewerId) {
       try {
-
         // ✅ Fetch Viewer
-        const viewer = await User.findById(viewerId).select(
-          "blockedUsers"
-        );
+        const viewer = await User.findById(viewerId).select("blockedUsers");
 
         if (viewer) {
-
           // ✅ Users blocked by viewer
           const blockedByViewer = viewer.blockedUsers || [];
 
@@ -363,15 +371,10 @@ router.get("/search_populer", async (req, res) => {
             blockedUsers: viewer._id,
           }).select("_id");
 
-          const blockedViewerIds = blockedViewerDocs.map(
-            (u) => u._id
-          );
+          const blockedViewerIds = blockedViewerDocs.map((u) => u._id);
 
           // ✅ Merge both lists
-          blockedList = [
-            ...blockedByViewer,
-            ...blockedViewerIds,
-          ];
+          blockedList = [...blockedByViewer, ...blockedViewerIds];
         }
 
         // 🔥 Not Interested Reels
@@ -383,15 +386,12 @@ router.get("/search_populer", async (req, res) => {
           .lean();
 
         if (notInterestedDocs.length > 0) {
-          notInterestedReelsList = notInterestedDocs.map(
-            (doc) => doc.reel
-          );
+          notInterestedReelsList = notInterestedDocs.map((doc) => doc.reel);
         }
-
       } catch (err) {
         console.error(
           "Invalid Viewer ID or error fetching viewer details:",
-          err.message
+          err.message,
         );
       }
     }
@@ -408,7 +408,7 @@ router.get("/search_populer", async (req, res) => {
         _id: { $nin: notInterestedReelsList },
       })
         .select(
-          "userid username name videoUrl thumbnailUrl caption likes views createdAt music"
+          "userid username name videoUrl thumbnailUrl caption likes views createdAt music",
         )
         .populate("music", "title artist thumbnail")
         .sort({ views: -1, createdAt: -1 })
@@ -438,11 +438,11 @@ router.get("/search_populer", async (req, res) => {
     let hasMoreVideos = false;
 
     // 🔍 USER SEARCH
-if (hasUserPagination) {
+    if (hasUserPagination) {
       users = await User.aggregate([
         {
           $match: {
-            isDeleted: { $ne: true }, 
+            isDeleted: { $ne: true },
 
             // ✅ Hide blocked users both side
             _id: { $nin: blockedList },
@@ -498,7 +498,6 @@ if (hasUserPagination) {
 
     // 🎬 VIDEO SEARCH
     if (hasVideoPagination) {
-
       const videoQuery = [
         {
           username: {
@@ -550,7 +549,7 @@ if (hasUserPagination) {
         _id: { $nin: notInterestedReelsList },
       })
         .select(
-          "userid username name videoUrl thumbnailUrl caption likes views createdAt music"
+          "userid username name videoUrl thumbnailUrl caption likes views createdAt music",
         )
         .populate("music", "title artist thumbnail")
         .sort({ views: -1, createdAt: -1 })
@@ -570,7 +569,6 @@ if (hasUserPagination) {
       userLimit,
       videoLimit,
     });
-
   } catch (err) {
     console.error("❌ Search API Error:", err);
 
@@ -591,7 +589,10 @@ router.get("/:id", async (req, res) => {
     const viewerId = req.query.viewerId;
 
     // 1. Fetch user
-  const user = await User.findOne({ userid: id, isDeleted: { $ne: true } }).select("-passwordHash");
+    const user = await User.findOne({
+      userid: id,
+      isDeleted: { $ne: true },
+    }).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 2. 🛡️ Block Check Logic (Solid Version)
@@ -599,8 +600,12 @@ router.get("/:id", async (req, res) => {
       const viewer = await User.findById(viewerId).select("blockedUsers");
 
       // .some() aur .toString() use karna best practice hai IDs ke liye
-      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(bid => bid.toString() === user._id.toString());
-      const hasTargetBlockedViewer = user.blockedUsers?.some(bid => bid.toString() === viewerId.toString());
+      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(
+        (bid) => bid.toString() === user._id.toString(),
+      );
+      const hasTargetBlockedViewer = user.blockedUsers?.some(
+        (bid) => bid.toString() === viewerId.toString(),
+      );
 
       if (hasViewerBlockedTarget || hasTargetBlockedViewer) {
         return res.status(404).json({ message: "User not found" });
@@ -628,8 +633,8 @@ router.get("/:id", async (req, res) => {
   } catch (err) {
     console.error("Error fetching user data:", err);
     // ✅ FIX: 'error' ko 'err' kiya taaki crash na ho
-    if (typeof logError === 'function') {
-      await logError(req, err); 
+    if (typeof logError === "function") {
+      await logError(req, err);
     }
     res.status(500).json({ message: "Server error" });
   }
@@ -648,7 +653,10 @@ router.get("/userpost/:id", async (req, res) => {
     if (skip < 0) skip = 0;
 
     // 👤 Fetch user
-    const user = await User.findOne({ _id: userId, isDeleted: { $ne: true } }).select("-passwordHash");
+    const user = await User.findOne({
+      _id: userId,
+      isDeleted: { $ne: true },
+    }).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 🔒 BLOCK CHECK
@@ -656,18 +664,18 @@ router.get("/userpost/:id", async (req, res) => {
       const viewer = await User.findById(viewerId).select("blockedUsers");
 
       const hasViewerBlockedTarget = viewer?.blockedUsers?.some(
-        bid => bid.toString() === userId
+        (bid) => bid.toString() === userId,
       );
 
       const hasTargetBlockedViewer = user.blockedUsers?.some(
-        bid => bid.toString() === viewerId
+        (bid) => bid.toString() === viewerId,
       );
 
       if (hasViewerBlockedTarget || hasTargetBlockedViewer) {
         return res.status(404).json({
           message: "User not found",
           reels: [],
-          postCount: 0
+          postCount: 0,
         });
       }
     }
@@ -678,22 +686,22 @@ router.get("/userpost/:id", async (req, res) => {
     // 🔥 INTEREST FILTER LOGIC
     if (viewerId && mongoose.isValidObjectId(viewerId)) {
       const interactions = await ReelInteraction.find({
-        user: viewerId
+        user: viewerId,
       }).lean();
 
       const notInterestedIds = interactions
-        .filter(i => i.action === "not_interested")
-        .map(i => new mongoose.Types.ObjectId(i.reel));
+        .filter((i) => i.action === "not_interested")
+        .map((i) => new mongoose.Types.ObjectId(i.reel));
 
       const interestedIds = interactions
-        .filter(i => i.action === "interested")
-        .map(i => new mongoose.Types.ObjectId(i.reel));
+        .filter((i) => i.action === "interested")
+        .map((i) => new mongoose.Types.ObjectId(i.reel));
 
       // ❌ Remove not interested reels
       if (notInterestedIds.length > 0) {
         query._id = {
           ...(query._id || {}),
-          $nin: notInterestedIds
+          $nin: notInterestedIds,
         };
       }
 
@@ -702,7 +710,7 @@ router.get("/userpost/:id", async (req, res) => {
       if (req.query.onlyInterested === "true" && interestedIds.length > 0) {
         query._id = {
           ...(query._id || {}),
-          $in: interestedIds
+          $in: interestedIds,
         };
       }
     }
@@ -724,7 +732,6 @@ router.get("/userpost/:id", async (req, res) => {
       reels,
       hasMore,
     });
-
   } catch (err) {
     console.error("Error fetching user reels:", err);
     err.statusCode = err.statusCode || 500;
@@ -737,31 +744,27 @@ router.get("/admin_userpost/:id", adminAuth, async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Get pagination parameters from query string
-    let limit = parseInt(req.query.limit) || 12; // default to 10
-    let skip = parseInt(req.query.skip) || 0; // default to 0
+    let limit = parseInt(req.query.limit) || 12; 
+    let skip = parseInt(req.query.skip) || 0; 
 
-    // Validate inputs
-    if (limit < 1 || limit > 50) limit = 10; // enforce max limit
+    if (limit < 1 || limit > 50) limit = 10; 
     if (skip < 0) skip = 0;
 
-    // Step 1: Fetch user (excluding passwordHash)
     const user = await User.findById(userId).select("-passwordHash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Step 2: Get total count of reels
-    const totalCount = await Reel.countDocuments({ user: userId });
+    // 🔥 Filter: Sirf active reels ko count karo
+    const query = { user: userId, isDeleted: { $ne: true } };
 
-    // Step 3: Get reels for this page
-    const reels = await Reel.find({ user: userId })
+    const totalCount = await Reel.countDocuments(query);
+
+    const reels = await Reel.find(query) // 🔥 Filter applied here
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    // Step 4: Determine if more data is available
     const hasMore = skip + reels.length < totalCount;
 
-    // Step 5: Return user data + reels + metadata
     res.json({
       user: user.toObject(),
       postCount: totalCount,
@@ -781,19 +784,22 @@ router.get("/:userid/followers", adminAuth, async (req, res) => {
   try {
     const { userid } = req.params;
 
-    // find user by custom userid
-    const user = await User.findOne({ userid }).populate(
-      "followers",
-      "userid username name profilePicture",
-    );
+    const user = await User.findOne({ userid }).populate({
+      path: "followers",
+      select: "userid username name profilePicture",
+      match: { isDeleted: { $ne: true } } // 🔥 FILTER: Jo user delete nahi hue, sirf unko lao
+    });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Kyunki populate filter laga ke data la rha hai, 
+    // to followers array me ab sirf ACTIVE users hi bachenge
+    // jisse length (total count) apne aap theek ho jayegi.
     return res.json({
       success: true,
-      total: user.followers.length,
+      total: user.followers.length, 
       followers: user.followers,
     });
   } catch (error) {
@@ -809,10 +815,11 @@ router.get("/admin/users/:userid/following", adminAuth, async (req, res) => {
   try {
     const { userid } = req.params;
 
-    const user = await User.findOne({ userid }).populate(
-      "following",
-      "userid username name profilePicture",
-    );
+    const user = await User.findOne({ userid }).populate({
+      path: "following",
+      select: "userid username name profilePicture",
+      match: { isDeleted: { $ne: true } } // 🔥 FILTER: Sirf active users dikhao
+    });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -849,14 +856,14 @@ router.get("/userlikedposts/:id", async (req, res) => {
       const targetUser = await User.findById(userId).select("blockedUsers");
 
       const viewerBlocked = viewer?.blockedUsers?.some(
-        id => id.toString() === userId
+        (id) => id.toString() === userId,
       );
 
       const targetBlocked = targetUser?.blockedUsers?.some(
-        id => id.toString() === viewerId
+        (id) => id.toString() === viewerId,
       );
 
-    if (viewerBlocked || targetBlocked) {
+      if (viewerBlocked || targetBlocked) {
         // ❗ 403 hata diya, 200 return karo
         return res.status(200).json({
           totalLikes: 0,
@@ -864,7 +871,7 @@ router.get("/userlikedposts/:id", async (req, res) => {
           reels: [],
           hasMore: false,
           blocked: true, // 👈 extra flag (frontend ke liye useful)
-          message: "User is blocked"
+          message: "User is blocked",
         });
       }
     }
@@ -887,18 +894,18 @@ router.get("/userlikedposts/:id", async (req, res) => {
       reels: likedReels,
       hasMore,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-
-
 router.get("/userfollowing/:id", async (req, res) => {
   try {
-   const user = await User.findOne({ userid: req.params.id, isDeleted: { $ne: true } });
+    const user = await User.findOne({
+      userid: req.params.id,
+      isDeleted: { $ne: true }, // Main user active hona chahiye
+    });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -906,7 +913,7 @@ router.get("/userfollowing/:id", async (req, res) => {
 
     const viewerId = req.query.viewerId;
 
-    // 🔥 FIX: Fetch viewer (missing in your code)
+    // 🔥 FIX: Fetch viewer
     let viewer = null;
     let blockedList = [];
 
@@ -914,7 +921,7 @@ router.get("/userfollowing/:id", async (req, res) => {
       viewer = await User.findById(viewerId).select("blockedUsers");
 
       if (viewer) {
-        blockedList = viewer.blockedUsers.map(id => id.toString());
+        blockedList = viewer.blockedUsers.map((id) => id.toString());
       }
     }
 
@@ -922,11 +929,9 @@ router.get("/userfollowing/:id", async (req, res) => {
     const isBlocked =
       (viewer &&
         viewer.blockedUsers.some(
-          id => id.toString() === user._id.toString()
+          (id) => id.toString() === user._id.toString(),
         )) ||
-      user.blockedUsers.some(
-        id => id.toString() === viewerId?.toString()
-      );
+      user.blockedUsers.some((id) => id.toString() === viewerId?.toString());
 
     // 🔒 FULL BLOCK (Instagram style)
     if (isBlocked) {
@@ -938,37 +943,31 @@ router.get("/userfollowing/:id", async (req, res) => {
       });
     }
 
-    // 🔹 CLEAN FOLLOWERS
-   const validFollowers = await User.find({ _id: { $in: user.followers }, isDeleted: { $ne: true } }, "_id");
-    const validFollowerIds = validFollowers.map((u) => u._id);
+    // ❌ Yahan se humne User.updateOne (Database update) hata diya hai!
+    // Database me deleted users ki ID safe rahegi taaki wo recover ho sakein.
 
-    
-    const validFollowing = await User.find({ _id: { $in: user.following }, isDeleted: { $ne: true } }, "_id");
-    const validFollowingIds = validFollowing.map((u) => u._id);
-
-    await User.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          followers: validFollowerIds,
-          following: validFollowingIds,
-        },
-      }
-    );
-
-    // 🔁 FETCH CLEAN USER WITH POPULATE
+    // 🔁 FETCH CLEAN USER WITH POPULATE + FILTERS
+    // ✅ Yahan humne 'match' condition lagayi hai taaki deleted users sirf Frontend par hide rahein
     const cleanUser = await User.findById(user._id)
-      .populate("followers", "userid username name profilePicture")
-      .populate("following", "userid username name profilePicture");
+      .populate({
+        path: "followers",
+        select: "userid username name profilePicture",
+        match: { isDeleted: { $ne: true } } // 🔥 FILTER: Sirf active followers dikhao
+      })
+      .populate({
+        path: "following",
+        select: "userid username name profilePicture",
+        match: { isDeleted: { $ne: true } } // 🔥 FILTER: Sirf active following dikhao
+      });
 
-    // 🛡️ EXISTING FILTER (unchanged)
+    // 🛡️ EXISTING FILTER (Blocked users ko hide karne ke liye)
     if (blockedList.length > 0) {
       cleanUser.followers = cleanUser.followers.filter(
-        (f) => !blockedList.includes(f._id.toString())
+        (f) => !blockedList.includes(f._id.toString()),
       );
 
       cleanUser.following = cleanUser.following.filter(
-        (f) => !blockedList.includes(f._id.toString())
+        (f) => !blockedList.includes(f._id.toString()),
       );
     }
 
@@ -985,17 +984,24 @@ router.get("/bymobile/:mobile", async (req, res) => {
   try {
     const viewerId = req.query.viewerId; // 🔥 Viewer ID frontend se
 
-  const user = await User.findOne({ mobile: req.params.mobile, isDeleted: { $ne: true } }).select("-passwordHash");
+    const user = await User.findOne({
+      mobile: req.params.mobile,
+      isDeleted: { $ne: true },
+    }).select("-passwordHash");
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 🛡️ BLOCK CHECK START
     if (viewerId) {
       const viewer = await User.findById(viewerId).select("blockedUsers");
-      
+
       // Dono side se check karo
-      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(bid => bid.toString() === user._id.toString());
-      const hasTargetBlockedViewer = user.blockedUsers?.some(bid => bid.toString() === viewerId.toString());
+      const hasViewerBlockedTarget = viewer?.blockedUsers?.some(
+        (bid) => bid.toString() === user._id.toString(),
+      );
+      const hasTargetBlockedViewer = user.blockedUsers?.some(
+        (bid) => bid.toString() === viewerId.toString(),
+      );
 
       if (hasViewerBlockedTarget || hasTargetBlockedViewer) {
         return res.status(404).json({ message: "User not found" });
@@ -1014,7 +1020,10 @@ router.get("/bymobile/:mobile", async (req, res) => {
 // find user by email
 router.get("/byemailapp/:email", async (req, res) => {
   try {
-  const user = await User.findOne({ email: req.params.email, isDeleted: { $ne: true } });
+    const user = await User.findOne({
+      email: req.params.email,
+      isDeleted: { $ne: true },
+    });
 
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
@@ -1034,45 +1043,51 @@ router.delete("/:id", async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (user.isDeleted) {
-      return res.status(400).json({ 
-        message: "Account is already scheduled for deletion." 
+      return res.status(400).json({
+        message: "Account is already scheduled for deletion.",
       });
     }
 
-    const deletedUserName = user.userName || user.username || user.name || "Unknown User";
+    const deletedUserName =
+      user.userName || user.username || user.name || "Unknown User";
 
     user.isDeleted = true;
     user.deletedAt = new Date();
     await user.save();
 
     await Promise.all([
-     
-      Reel.updateMany(
-        { likes: userId }, 
-        { $pull: { likes: userId } }
-      ),
+      // ✅ 1. LIKES DELETE (Turant hat jayenge)
+      Reel.updateMany({ likes: userId }, { $pull: { likes: userId } }),
 
+      // ✅ 2. VIEWS DELETE (Turant hat jayenge aur count -1 ho jayega)
       Reel.updateMany(
-        { viewsdata: userId }, 
-        { 
-          $pull: { viewsdata: userId }, 
-          $inc: { views: -1 } 
+        { viewsdata: userId },
+        {
+          $pull: { viewsdata: userId },
+          $inc: { views: -1 },
         }
       ),
 
-      User.updateMany({ followers: userId }, { $pull: { followers: userId } }),
-      User.updateMany({ following: userId }, { $pull: { following: userId } })
+      // ✅ 3. COMMENTS SOFT DELETE (Taaki account recover ho toh comments wapas aa jayein)
+      Comment.updateMany(
+        { user: userId },
+        { isDeleted: true, deletedAt: new Date() }
+      )
+
+      // ❌ Yahan se Followers aur Following ka $pull HATA diya gaya hai!
+      // Matlab account delete hone par bhi connection bana rahega (bas hide rahega).
+      // Restore karne par sab wapas mil jayega!
     ]);
 
     try {
       await logUserAction({
-        user: req.user._id,
-        userName: req.userName,
-        userRole: req.userRole,
-        action: "soft_delete_user", 
+        user: req.user ? req.user._id : userId, // req.user agar na ho to userId daal do
+        userName: req.user ? req.user.username : deletedUserName,
+        userRole: req.userRole || "User",
+        action: "soft_delete_user",
         targetType: "User",
-        targetId: userId, 
-        targetName: deletedUserName, 
+        targetId: userId,
+        targetName: deletedUserName,
         device: req.headers["user-agent"],
         location: {
           ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
@@ -1088,13 +1103,12 @@ router.delete("/:id", async (req, res) => {
     res.json({
       message: `Account deactivated successfully.`,
       details: `Your account will be permanently deleted on ${thirtyDaysLater.toDateString()}. If you log in before this date, your account will be restored.`,
-      scheduledDeletionDate: thirtyDaysLater
+      scheduledDeletionDate: thirtyDaysLater,
     });
-
   } catch (err) {
     console.error("Error softly deleting user:", err);
     err.statusCode = err.statusCode || 500;
-    await logError(req, err); 
+    await logError(req, err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -1107,56 +1121,62 @@ router.delete(
     try {
       const userId = req.params.id;
 
-      // 1. User ko dhoondo delete karne se pehle taaki uska naam mil sake
+      // 1. User find karo (delete hone se pehle)
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      // 2. Naam ko variable mein save karo (Delete hone ke baad ye nahi milega)
+      // Agar account pehle se deleted hai toh error do
+      if (user.isDeleted) {
+        return res.status(400).json({
+          message: "Account is already scheduled for deletion.",
+        });
+      }
+
+      // 2. User ka naam save karo (response aur logs ke liye)
       const deletedUserName =
         user.userName || user.username || user.name || "Unknown User";
 
+      // 3. User ko Soft Delete karo
+      user.isDeleted = true;
+      user.deletedAt = new Date();
+      await user.save();
+
+      // 4. Update Other Data (Ab Shares, Followers, Following Hard Delete Nahi Honge)
       await Promise.all([
-        // Delete all reels of this user
-        Reel.deleteMany({ user: userId }),
-
-        // Delete all comments of this user
-        Comment.deleteMany({ user: userId }),
-
-        // Remove user from followers/following of other users
-        User.updateMany(
-          { followers: userId },
-          { $pull: { followers: userId } },
-        ),
-        User.updateMany(
-          { following: userId },
-          { $pull: { following: userId } },
+        
+        // ✅ 1. Comments ko Soft Delete karo (Thappa lagao)
+        Comment.updateMany(
+          { user: userId },
+          { isDeleted: true, deletedAt: new Date() },
         ),
 
-        // Remove user from likes/shares of Reels
+        // ✅ 2. LIKES DELETE (Jaisa aapne pehle bola tha ki ye hatne chahiye)
         Reel.updateMany({ likes: userId }, { $pull: { likes: userId } }),
+
+        // ✅ 3. VIEWS DELETE (Jaisa aapne pehle bola tha)
         Reel.updateMany(
-          { "shares.sharedBy": userId },
-          { $pull: { shares: { sharedBy: userId } } },
+          { viewsdata: userId },
+          {
+            $pull: { viewsdata: userId },
+            $inc: { views: -1 },
+          },
         ),
-        Reel.updateMany(
-          { "shares.sharedTo": userId },
-          { $pull: { shares: { sharedTo: userId } } },
-        ),
+
+        // ❌ Yahan se Followers, Following aur Shares ka code HATA diya gaya hai.
+        // Iska matlab wo IDs array mein safe rahengi (Soft Delete jaisa behave karengi).
+        // Account restore hone par sab wapas mil jayega!
       ]);
 
-      // Actual user deletion
-      await user.deleteOne();
-
+      // 5. Activity log mein save karo
       try {
-        // 3. logUserAction mein targetName pass kiya
         await logUserAction({
           user: req.user._id,
           userName: req.userName,
           userRole: req.userRole,
-          action: "delete_user",
+          action: "soft_delete_user",
           targetType: "User",
-          targetId: userId, // Jisko delete kiya uski ID
-          targetName: deletedUserName, // ✅ Jisko delete kiya uska NAAM
+          targetId: userId,
+          targetName: deletedUserName,
           device: req.headers["user-agent"],
           location: {
             ip:
@@ -1165,15 +1185,20 @@ router.delete(
           },
         });
       } catch (e) {
-        console.error("Delete user log error:", e.message);
+        console.error("Soft delete user log error:", e.message);
       }
 
-      // Response mein bhi naam dikhao taaki confirmation mile
+      // 6. 30 din baad ki date nikal lo
+      const thirtyDaysLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+      // 7. Admin ko success message bhej do
       res.json({
-        message: `User ${deletedUserName} and all related data deleted successfully`,
+        message: `User ${deletedUserName} deactivated successfully by Admin.`,
+        details: `The account will be permanently deleted on ${thirtyDaysLater.toDateString()}.`,
+        scheduledDeletionDate: thirtyDaysLater,
       });
     } catch (err) {
-      console.error("Error deleting user:", err);
+      console.error("Error softly deleting user by admin:", err);
       err.statusCode = err.statusCode || 500;
       await logError(req, err);
       res.status(500).json({ message: "Server error" });
@@ -2024,7 +2049,7 @@ router.post("/external/suspend-user", async (req, res) => {
       return res.status(400).json({ message: "userId required" });
     }
 
-const user = await User.findOne({ userid: userId });
+    const user = await User.findOne({ userid: userId });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (typeof isSuspended === "boolean") {
@@ -2052,21 +2077,19 @@ const user = await User.findOne({ userid: userId });
       targetName: user.username,
       metadata: {
         reason: reason || "",
-        source: "shopping_app"
-      }
+        source: "shopping_app",
+      },
     });
 
     res.json({
       success: true,
       message: `User ${isSuspended ? "suspended" : "activated"} successfully`,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 router.put("/action/disconnect-seller", async (req, res) => {
   try {
@@ -2105,6 +2128,5 @@ router.put("/action/disconnect-seller", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 module.exports = router;

@@ -1,7 +1,4 @@
-
 const mongoose = require("mongoose");
-
-// ================= REEL SCHEMA =================
 
 const reelSchema = new mongoose.Schema(
   {
@@ -10,12 +7,13 @@ const reelSchema = new mongoose.Schema(
       ref: "User4",
       required: true,
     },
-
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
     userid: { type: String, required: true },
     username: { type: String, required: true },
     name: { type: String, default: "" },
 
-    // 🔥 SELLER FIELDS
+   
     seller_id: { type: String, default: "" },
     userseller_id: { type: String, default: "" },
 
@@ -70,9 +68,8 @@ const reelSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
-
 
 // ================= AUTO SYNC USER DATA =================
 
