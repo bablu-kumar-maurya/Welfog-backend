@@ -34,6 +34,7 @@ router.post("/", async (req, res) => {
       seller_id,
       userseller_id,
       isConnected,
+      reactivate, // ✨ NAYA: Frontend se reactivate flag aayega
     } = req.body;
 
     if (!mobile) {
@@ -46,8 +47,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Username is required" });
     }
 
-    username = username.toLowerCase();
-    username = username.trim().toLowerCase();
+    username = username.toLowerCase().trim();
 
     if (username.length < 3 || username.length > 20) {
       return res.status(400).json({
@@ -73,26 +73,63 @@ router.post("/", async (req, res) => {
         _id: { $ne: existingUser?._id },
       });
       if (duplicateUserSeller) {
-        return res
-          .status(400)
-          .json({ message: "User Seller ID already exists" });
+        return res.status(400).json({ message: "User Seller ID already exists" });
       }
     }
 
     // ==========================================
-    // 1. EXISTING USER LOGIC (ACCOUNT RECOVERY)
+    // 1. RECOVERY & ARCHIVE LOGIC (30 DAYS CHECK)
     // ==========================================
-    if (existingUser) {
-      // ✨ NAYI LINE: Agar account soft-delete tha, toh usko recover karo
-      if (existingUser.isDeleted) {
+    if (existingUser && existingUser.isDeleted) {
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      const timePassed = Date.now() - new Date(existingUser.deletedAt).getTime();
+
+      if (timePassed <= thirtyDays) {
+        
+        // ✨ NAYA LOCK: Agar app auto-login try kare bina permission ke, toh rok do
+        if (reactivate !== true) {
+          return res.status(403).json({
+            message: "Your account is deactivated. Do you want to reactivate it?",
+            needsReactivation: true // Frontend ko yahi flag check karna hai popup dikhane ke liye
+          });
+        }
+
+        // ✨ CONDITION A: Agar reactivate: true aaya hai, tabhi Restore Account karo
         existingUser.isDeleted = false;
         existingUser.deletedAt = null;
         
-        // ✅ NAYA CODE: USER KE COMMENTS BHI WAPAS RECOVER KARO
+        // Comments wapas laao
         await Comment.updateMany(
           { user: existingUser._id },
           { $set: { isDeleted: false, deletedAt: null } }
         );
+      } else {
+        // ✨ CONDITION B: 30 Din ke baad aaya hai (Archive Old & Make Way for New)
+        const timestamp = Date.now();
+        existingUser.mobile = `${existingUser.mobile}_hidden_${timestamp}`;
+        existingUser.username = `${existingUser.username}_hidden_${timestamp}`;
+        if (existingUser.email) {
+          existingUser.email = `${existingUser.email}_hidden_${timestamp}`;
+        }
+        
+        existingUser.isPermanentlyHidden = true;
+        await existingUser.save(); 
+
+        existingUser = null; // Taaki aage fresh account ban jaye
+      }
+    }
+
+    // ==========================================
+    // 2. EXISTING USER LOGIC (Agar account fresh nahi bana)
+    // ==========================================
+    if (existingUser) {
+      // Username Update Logic (Agar reactivate/login pe naya username dala hai)
+      if (existingUser.username !== username) {
+        const usernameTaken = await User.findOne({ username });
+        if (usernameTaken) {
+          return res.status(400).json({ message: "This username is already taken" });
+        }
+        existingUser.username = username;
       }
 
       if (name) existingUser.name = name;
@@ -130,17 +167,16 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // ==========================================
+    // 3. NEW USER LOGIC (Naya Fresh Account)
+    // ==========================================
     const existingUsername = await User.findOne({ username });
     if (existingUsername) {
       return res.status(400).json({ message: "Username already taken" });
     }
 
-    // ==========================================
-    // 2. NEW USER LOGIC (FIX FOR DUPLICATE ERROR)
-    // ==========================================
-    // ✨ YAHAN SE default empty string ("") hata diya gaya hai
     const newUser = new User({
-      userid: uuidv4(), // Dhyan rahe uuidv4 imported ho
+      userid: uuidv4(),
       mobile,
       username,
       name: name || "",
@@ -150,7 +186,6 @@ router.post("/", async (req, res) => {
       isConnected: isConnected || false,
     });
 
-    // ✨ YAHAN CONDITION LAGAYI HAI (Sirf tabhi add hoga jab value aayegi)
     if (seller_id) newUser.seller_id = seller_id;
     if (userseller_id) newUser.userseller_id = userseller_id;
 
@@ -183,7 +218,6 @@ router.post("/", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
-
 router.get("/", async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -1073,15 +1107,11 @@ router.delete("/:id", async (req, res) => {
         { user: userId },
         { isDeleted: true, deletedAt: new Date() }
       )
-
-      // ❌ Yahan se Followers aur Following ka $pull HATA diya gaya hai!
-      // Matlab account delete hone par bhi connection bana rahega (bas hide rahega).
-      // Restore karne par sab wapas mil jayega!
     ]);
 
     try {
       await logUserAction({
-        user: req.user ? req.user._id : userId, // req.user agar na ho to userId daal do
+        user: req.user ? req.user._id : userId,
         userName: req.user ? req.user.username : deletedUserName,
         userRole: req.userRole || "User",
         action: "soft_delete_user",
@@ -1102,13 +1132,14 @@ router.delete("/:id", async (req, res) => {
 
     res.json({
       message: `Account deactivated successfully.`,
-      details: `Your account will be permanently deleted on ${thirtyDaysLater.toDateString()}. If you log in before this date, your account will be restored.`,
+      // ✨ NAYA MESSAGE: User ko clear batayega ki fresh account banega
+      details: `Your account will be deactivated. If you log in before ${thirtyDaysLater.toDateString()}, your data will be restored. After this date, logging in will create a fresh account (your old data remains securely archived).`,
       scheduledDeletionDate: thirtyDaysLater,
     });
   } catch (err) {
     console.error("Error softly deleting user:", err);
     err.statusCode = err.statusCode || 500;
-    await logError(req, err);
+    // await logError(req, err); // Ensure logError is defined in your file
     res.status(500).json({ message: "Server error" });
   }
 });
