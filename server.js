@@ -4,7 +4,7 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser"); // ✅ Naya: Cookies read karne ke liye
+const cookieParser = require("cookie-parser"); // Naya: Cookies read karne ke liye
 const authenticateToken = require("./middleware/auth");
 const checkMaintenance = require("./middleware/checkMaintenance");
 const path = require("path");
@@ -28,20 +28,18 @@ app.use(cors({
       callback(new Error("CORS not allowed"));
     }
   },
-  credentials: true // ✅ Cookies allow karne ke liye zaroori hai
+  credentials: true 
 }));
 
 app.use(bodyParser.json());
 app.use("/uploads", express.static("uploads"));
 app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
-// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected successfully"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 const PORT = process.env.PORT || 4000;
 
-// Import routes
 const userRoutes = require("./routes/userRoutes");
 const reelRoute = require("./routes/reelRoutes");
 const musicRoute = require("./routes/musicRoutes");
@@ -67,9 +65,9 @@ app.use("/api/userblocks", userblockRoute);
 
 app.get("/", (req, res) => {
   res.json({
-     "version": "1.0.15",
+     "version": "1.0.16",
     message: "Welcome to Neo Reels Backend API!",
-    status: "Server is running successfully! 🚀"
+    status: "Server is running successfully! "
   });
 });
 

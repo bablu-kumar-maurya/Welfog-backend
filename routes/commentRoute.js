@@ -392,10 +392,6 @@ router.get("/:id", async (req, res) => {
 });
 
 
-
-
-
-
 // delete comment 
 router.delete(
   "/delete/:id/:userId",
@@ -608,9 +604,6 @@ router.put("/update/:id", async (req, res) => {
   }
 });
 
-
-
-
 // GET comments for a reel
 router.get('/reel/:reelId', async (req, res) => {
   try {
@@ -661,7 +654,6 @@ router.get('/reel/:reelId', async (req, res) => {
     }
   }
 });
-
 
 // comment like dislike
 router.put("/like/:id", async (req, res) => {

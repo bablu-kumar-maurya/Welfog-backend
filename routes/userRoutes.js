@@ -19,7 +19,6 @@ const axios = require("axios");
 const mongoose = require("mongoose");
 const ReelInteraction = require("../models/ReelInteraction");
 
-// create new user
 
 router.post("/", async (req, res) => {
   try {
@@ -34,102 +33,53 @@ router.post("/", async (req, res) => {
       seller_id,
       userseller_id,
       isConnected,
-      reactivate, // ✨ NAYA: Frontend se reactivate flag aayega
     } = req.body;
 
     if (!mobile) {
       return res.status(400).json({ message: "Mobile number is required" });
     }
-
     mobile = mobile.replace(/\D/g, "");
 
-    if (!username) {
-      return res.status(400).json({ message: "Username is required" });
-    }
-
-    username = username.toLowerCase().trim();
-
-    if (username.length < 3 || username.length > 20) {
-      return res.status(400).json({
-        message: "Username must be 3-20 characters",
-      });
-    }
-
+    // ✨ SABSE PEHLE USER FIND KARO (Username check karne se bhi pehle)
     let existingUser = await User.findOne({ mobile });
 
-    if (seller_id) {
-      const duplicateSeller = await User.findOne({
-        seller_id,
-        _id: { $ne: existingUser?._id },
-      });
-      if (duplicateSeller) {
-        return res.status(400).json({ message: "Seller ID already exists" });
-      }
-    }
-
-    if (userseller_id) {
-      const duplicateUserSeller = await User.findOne({
-        userseller_id,
-        _id: { $ne: existingUser?._id },
-      });
-      if (duplicateUserSeller) {
-        return res.status(400).json({ message: "User Seller ID already exists" });
-      }
-    }
-
     // ==========================================
-    // 1. RECOVERY & ARCHIVE LOGIC (30 DAYS CHECK)
+    // 1. DELETED USER CHECK (Recovery Logic)
     // ==========================================
     if (existingUser && existingUser.isDeleted) {
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
       const timePassed = Date.now() - new Date(existingUser.deletedAt).getTime();
 
       if (timePassed <= thirtyDays) {
-        
-        // ✨ NAYA LOCK: Agar app auto-login try kare bina permission ke, toh rok do
-        if (reactivate !== true) {
-          return res.status(403).json({
-            message: "Your account is deactivated. Do you want to reactivate it?",
-            needsReactivation: true // Frontend ko yahi flag check karna hai popup dikhane ke liye
-          });
-        }
-
-        // ✨ CONDITION A: Agar reactivate: true aaya hai, tabhi Restore Account karo
-        existingUser.isDeleted = false;
-        existingUser.deletedAt = null;
-        
-        // Comments wapas laao
-        await Comment.updateMany(
-          { user: existingUser._id },
-          { $set: { isDeleted: false, deletedAt: null } }
-        );
+        // Yahan Frontend ko pata chal jayega ki account recover karna hai
+        return res.status(403).json({
+          message: "Your account is deactivated. Do you want to reactivate it?",
+          needsReactivation: true,
+          mobile: existingUser.mobile
+        });
       } else {
-        // ✨ CONDITION B: 30 Din ke baad aaya hai (Archive Old & Make Way for New)
+        // 30 Din ke baad aaya hai - Archive kar do taaki naya ban sake
         const timestamp = Date.now();
         existingUser.mobile = `${existingUser.mobile}_hidden_${timestamp}`;
         existingUser.username = `${existingUser.username}_hidden_${timestamp}`;
         if (existingUser.email) {
           existingUser.email = `${existingUser.email}_hidden_${timestamp}`;
         }
-        
         existingUser.isPermanentlyHidden = true;
         await existingUser.save(); 
-
-        existingUser = null; // Taaki aage fresh account ban jaye
+        existingUser = null; 
       }
     }
 
     // ==========================================
-    // 2. EXISTING USER LOGIC (Agar account fresh nahi bana)
+    // 2. EXISTING ACTIVE USER LOGIN
     // ==========================================
     if (existingUser) {
-      // Username Update Logic (Agar reactivate/login pe naya username dala hai)
-      if (existingUser.username !== username) {
-        const usernameTaken = await User.findOne({ username });
-        if (usernameTaken) {
-          return res.status(400).json({ message: "This username is already taken" });
-        }
-        existingUser.username = username;
+      // Agar user login ke time koi naya profile update bhej raha hai
+      if (username && existingUser.username !== username.toLowerCase().trim()) {
+        const usernameTaken = await User.findOne({ username: username.toLowerCase().trim() });
+        if (usernameTaken) return res.status(400).json({ message: "This username is already taken" });
+        existingUser.username = username.toLowerCase().trim();
       }
 
       if (name) existingUser.name = name;
@@ -142,9 +92,6 @@ router.post("/", async (req, res) => {
         existingUser.lastConnectedAt = new Date();
       }
 
-      if (seller_id) existingUser.seller_id = seller_id;
-      if (userseller_id) existingUser.userseller_id = userseller_id;
-
       await existingUser.save();
 
       return res.status(200).json({
@@ -154,22 +101,27 @@ router.post("/", async (req, res) => {
         username: existingUser.username,
         name: existingUser.name,
         isConnected: existingUser.isConnected,
-        seller_id: existingUser.seller_id,
-        userseller_id: existingUser.userseller_id,
         mobile: existingUser.mobile,
-        email: existingUser.email,
         profilePicture: existingUser.profilePicture,
         bio: existingUser.bio,
         followers: existingUser.followers,
         following: existingUser.following,
-        isSuspended: existingUser.isSuspended,
-        createdAt: existingUser.createdAt,
       });
     }
 
     // ==========================================
-    // 3. NEW USER LOGIC (Naya Fresh Account)
+    // 3. FRESH NAYA ACCOUNT (New Registration)
     // ==========================================
+    // Agar existingUser nahi hai, TABHI hum username demand karenge!
+    if (!username) {
+      return res.status(400).json({ message: "Username is required to create a new account" });
+    }
+
+    username = username.toLowerCase().trim();
+    if (username.length < 3 || username.length > 20) {
+      return res.status(400).json({ message: "Username must be 3-20 characters" });
+    }
+
     const existingUsername = await User.findOne({ username });
     if (existingUsername) {
       return res.status(400).json({ message: "Username already taken" });
@@ -196,19 +148,10 @@ router.post("/", async (req, res) => {
       _id: savedUser._id,
       userid: savedUser.userid,
       username: savedUser.username,
-      name: savedUser.name,
-      isConnected: savedUser.isConnected,
-      seller_id: savedUser.seller_id,
-      userseller_id: savedUser.userseller_id,
       mobile: savedUser.mobile,
-      email: savedUser.email,
-      profilePicture: savedUser.profilePicture,
-      bio: savedUser.bio,
-      followers: savedUser.followers,
-      following: savedUser.following,
-      isSuspended: savedUser.isSuspended,
-      createdAt: savedUser.createdAt,
+      // ... baki cheezein
     });
+
   } catch (error) {
     console.error("Error processing user:", error);
     if (error.code === 11000) {
@@ -218,6 +161,8 @@ router.post("/", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
+
 router.get("/", async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -2157,6 +2102,74 @@ router.put("/action/disconnect-seller", async (req, res) => {
   } catch (error) {
     console.error("Update error:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+
+router.post("/reactivate", async (req, res) => {
+  try {
+    let { mobile } = req.body; // Frontend ko yahan username bhejne ki zaroorat hi nahi hai
+
+    if (!mobile) {
+      return res.status(400).json({ message: "Mobile number is required" });
+    }
+
+    mobile = mobile.replace(/\D/g, "");
+    const existingUser = await User.findOne({ mobile });
+
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!existingUser.isDeleted) {
+      return res.status(400).json({ message: "Account is already active." });
+    }
+
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const timePassed = Date.now() - new Date(existingUser.deletedAt).getTime();
+
+    // Check if 30 days limit is crossed
+    if (timePassed > thirtyDays) {
+      return res.status(400).json({ 
+        message: "Reactivation period has expired. Please log in normally to create a fresh account." 
+      });
+    }
+
+    // ✨ 1. RESTORE ACCOUNT
+    existingUser.isDeleted = false;
+    existingUser.deletedAt = null;
+    await existingUser.save();
+
+    // ✨ 2. RESTORE COMMENTS
+    await Comment.updateMany(
+      { user: existingUser._id },
+      { $set: { isDeleted: false, deletedAt: null } }
+    );
+
+    // ✨ 3. RETURN FULL USER DATA (Taaki frontend direct login karwa de)
+    return res.status(200).json({
+      message: "Account reactivated and logged in successfully",
+      _id: existingUser._id,
+      userid: existingUser.userid,
+      username: existingUser.username,
+      name: existingUser.name,
+      isConnected: existingUser.isConnected,
+      seller_id: existingUser.seller_id,
+      userseller_id: existingUser.userseller_id,
+      mobile: existingUser.mobile,
+      email: existingUser.email,
+      profilePicture: existingUser.profilePicture,
+      bio: existingUser.bio,
+      followers: existingUser.followers,
+      following: existingUser.following,
+      isSuspended: existingUser.isSuspended,
+      createdAt: existingUser.createdAt,
+    });
+
+  } catch (error) {
+    console.error("Error reactivating user:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
