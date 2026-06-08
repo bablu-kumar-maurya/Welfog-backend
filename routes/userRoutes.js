@@ -77,9 +77,17 @@ router.post("/", async (req, res) => {
     if (existingUser) {
       // Agar user login ke time koi naya profile update bhej raha hai
       if (username && existingUser.username !== username.toLowerCase().trim()) {
-        const usernameTaken = await User.findOne({ username: username.toLowerCase().trim() });
+        const formattedUsername = username.toLowerCase().trim();
+
+        // ✨ UPDATED: Regex check to block symbols & spaces but ALLOW underscores
+        const usernameRegex = /^[a-z0-9_]+$/;
+        if (!usernameRegex.test(formattedUsername)) {
+          return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
+        }
+
+        const usernameTaken = await User.findOne({ username: formattedUsername });
         if (usernameTaken) return res.status(400).json({ message: "This username is already taken" });
-        existingUser.username = username.toLowerCase().trim();
+        existingUser.username = formattedUsername;
       }
 
       if (name) existingUser.name = name;
@@ -120,6 +128,12 @@ router.post("/", async (req, res) => {
     username = username.toLowerCase().trim();
     if (username.length < 3 || username.length > 20) {
       return res.status(400).json({ message: "Username must be 3-20 characters" });
+    }
+
+    // ✨ UPDATED: Regex check to block symbols & spaces but ALLOW underscores for new accounts
+    const usernameRegex = /^[a-z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
     }
 
     const existingUsername = await User.findOne({ username });
@@ -1363,6 +1377,7 @@ router.put("/:id", async (req, res) => {
     currentPassword,
     newPassword,
     isSuspended,
+    suspendReason // ✨ ADDED: Ye nikalna zaroori tha warna error aata
   } = req.body;
 
   try {
@@ -1381,15 +1396,34 @@ router.put("/:id", async (req, res) => {
       user.passwordHash = await bcrypt.hash(newPassword, 10);
     }
 
+    // ✨ ADDED: Username ko lower case aur trim karne ka logic
+    const formattedUsername = username ? username.toLowerCase().trim() : undefined;
+
     // 🔹 Check karo kya Name ya Username change ho raha hai
     const isNameChanged =
-      (name && name !== user.name) || (username && username !== user.username);
+      (name && name !== user.name) || (formattedUsername && formattedUsername !== user.username);
 
     // Fields update
-    if (username) user.username = username;
+    // ✨ ADDED: Username validation logic (Strict rules and Uniqueness check)
+    if (formattedUsername && formattedUsername !== user.username) {
+      const usernameRegex = /^[a-z0-9_]+$/;
+      if (!usernameRegex.test(formattedUsername)) {
+        return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
+      }
+
+      // Check agar ye naya username kisi aur ka toh nahi
+      const usernameTaken = await User.findOne({ username: formattedUsername });
+      if (usernameTaken && usernameTaken._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ message: "This username is already taken" });
+      }
+
+      user.username = formattedUsername;
+    }
+
     if (name) user.name = name;
     if (profilePicture) user.profilePicture = profilePicture;
     if (bio) user.bio = bio;
+    
     if (typeof isSuspended === "boolean") {
       user.isSuspended = isSuspended;
 
@@ -1530,11 +1564,29 @@ router.put(
         user.passwordHash = hashedPassword;
       }
 
+      // ✨ ADDED: Username validation logic (Strict rules and Uniqueness check)
+      if (username) {
+        const formattedUsername = username.toLowerCase().trim();
+
+        const usernameRegex = /^[a-z0-9_]+$/;
+        if (!usernameRegex.test(formattedUsername)) {
+          return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
+        }
+
+        // Check agar ye naya username kisi aur ka toh nahi
+        const usernameTaken = await User.findOne({ username: formattedUsername });
+        if (usernameTaken && usernameTaken._id.toString() !== user._id.toString()) {
+          return res.status(400).json({ message: "This username is already taken" });
+        }
+
+        user.username = formattedUsername;
+      }
+
       // Update other fields
-      if (username) user.username = username;
       if (name) user.name = name;
       if (profilePicture) user.profilePicture = profilePicture;
       if (bio) user.bio = bio;
+      
       if (typeof isSuspended === "boolean") {
         user.isSuspended = isSuspended;
 
