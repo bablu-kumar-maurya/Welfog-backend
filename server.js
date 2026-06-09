@@ -31,7 +31,6 @@ app.use(cors({
     }
   },
   credentials: true,
-  // Sabhi platforms ke headers (Android, iOS, Desktop) allowed hain
   allowedHeaders: [
     "Content-Type", 
     "Authorization", 
@@ -49,11 +48,10 @@ app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
 
 const bannedClients = new Map();
 
-// AWS/Vercel pe asli IP nikalne ke liye proxy trust true karna best hai
 app.set("trust proxy", true);
 
 const getClientInfo = (req) => {
-  // Senior ke hisaab se har platform ka header check karega
+
   const deviceId = 
     req.headers["x-android-id"] ||    
     req.headers["x-ios-idfv"] ||      
@@ -61,7 +59,6 @@ const getClientInfo = (req) => {
     req.headers["x-device-id"] ||     
     req.cookies["x-device-id"];       
     
-  // Live AWS Server ke liye strong IP detection
   let ip = req.ip || req.connection.remoteAddress || "unknown_ip";
   if (req.headers["x-forwarded-for"]) {
     ip = req.headers["x-forwarded-for"].split(",")[0].trim();
@@ -73,7 +70,7 @@ const getClientInfo = (req) => {
   };
 };
 
-// 🛡️ ANTI-HACKER SHIELD: Direct Browser Access Block (Bina Device ID ke no entry)
+
 const requireDeviceId = (req, res, next) => {
   if (req.path === "/") return next();
   const { deviceId } = getClientInfo(req);
@@ -88,19 +85,16 @@ const requireDeviceId = (req, res, next) => {
 
 app.use(requireDeviceId);
 
-// ========================================================
-// 🛡️ 1. API SCRIPT LIMITER: Route-Wise Counting (For IP)
-// ========================================================
+
 const apiScriptLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, 
-  max: 500, // Ek single API par 10 min me max 500 hits
+  max: 1000, 
 
   standardHeaders: true,
   legacyHeaders: false,
 
   keyGenerator: (req) => {
     const { ip } = getClientInfo(req);
-    // 👇 Har API route ko IP ke sath jodh diya (e.g. 192.168.1.1_/api/reels)
     return `${ip}_${req.path}`;
   },
 
@@ -129,8 +123,6 @@ const checkIPBan = (req, res, next) => {
   );
 
   const now = Date.now();
-
-  // Device ban check
   if (deviceId && bannedClients.has(deviceId)) {
     const unbanTime = bannedClients.get(deviceId);
 
@@ -161,9 +153,6 @@ const checkIPBan = (req, res, next) => {
   next();
 };
 
-// ========================================================
-// 🛡️ 2. GLOBAL APP LIMITER: Route-Wise Counting (For Device)
-// ========================================================
 const globalLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, 
   max: 500,
@@ -178,7 +167,6 @@ const globalLimiter = rateLimit({
   keyGenerator: (req) => {
     const { deviceId, ip } = getClientInfo(req);
     const identifier = deviceId || ip;
-    // 👇 Har API route ko Device ID ke sath jodh diya
     return `${identifier}_${req.path}`;
   },
 
@@ -188,7 +176,6 @@ const globalLimiter = rateLimit({
     const twelveHoursInMs = 12 * 60 * 60 * 1000;
     const unbanTime = Date.now() + twelveHoursInMs;
 
-    // Device aur IP dono ko ban kar do
     if (deviceId) {
       bannedClients.set(deviceId, unbanTime);
     }
@@ -208,7 +195,6 @@ const globalLimiter = rateLimit({
 app.use(checkIPBan);
 app.use(globalLimiter);
 
-// ========================================================
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected successfully"))

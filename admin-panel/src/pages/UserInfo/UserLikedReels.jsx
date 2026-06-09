@@ -8,6 +8,7 @@ import {
   MdVisibility,
   MdThumbUp,
   MdComment,
+  MdVideoLibrary,
 } from "react-icons/md";
 import toast from "react-hot-toast";
 
@@ -255,9 +256,23 @@ const UserLikedReels = () => {
                 </div>
               </div>
             ))
-          ) : (
-            !loading && <div className="col-span-full text-center py-20 text-gray-500">No reels found.</div>
-          )}
+         ) : (
+  !loading && (
+    <div className="col-span-full flex flex-col items-center justify-center py-20">
+      <div className="bg-gray-100 p-6 rounded-full mb-4">
+        <MdVideoLibrary className="text-6xl text-gray-400" />
+      </div>
+
+      <h3 className="text-xl font-bold text-gray-800 mb-2">
+        No Liked Reels Found
+      </h3>
+
+      <p className="text-gray-500 text-center max-w-sm">
+        This user has not liked any reels yet.
+      </p>
+    </div>
+  )
+)}
         </div>
       </div>
 

@@ -97,7 +97,7 @@ const Notifications = () => {
           Notifications
         </h1>
         <p className="text-gray-500 text-sm md:text-base">
-          View all system notifications ({notifications.length})
+          View all system notifications
         </p>
       </div>
 

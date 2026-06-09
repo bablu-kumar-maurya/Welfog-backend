@@ -3,6 +3,7 @@ import axios from "axios";
 
 // ✅ Global configuration for Cookies
 axios.defaults.withCredentials = true;
+axios.defaults.headers.common["x-device-id"] = "admin-panel-web";
 const API_BASE_URL = "http://localhost:4000";
 
 const AuthContext = createContext();
@@ -28,7 +29,14 @@ export const AuthProvider = ({ children }) => {
   ====================================================== */
   const verifyToken = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/admin/verify`);
+   const res = await axios.get(
+  `${API_BASE_URL}/api/admin/verify`,
+  {
+    headers: {
+      "x-device-id": "admin-panel-web",
+    },
+  }
+);
 
       if (res.data.success) {
         setIsAuthenticated(true);
@@ -107,7 +115,15 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setLoading(true);
-      const response = await axios.post(`${API_BASE_URL}/api/admin/login`, credentials);
+     const response = await axios.post(
+  `${API_BASE_URL}/api/admin/login`,
+  credentials,
+  {
+    headers: {
+      "x-device-id": "admin-panel-web",
+    },
+  }
+);
 
       if (response.data.success) {
         const { user } = response.data;
