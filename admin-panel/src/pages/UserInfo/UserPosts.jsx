@@ -216,7 +216,7 @@ const UserPosts = () => {
         </button>
       </div>
 
-      {/* Spinner (first load only) */}
+      
       {reels.length === 0 && loading && <div className="spinner" />}
 
       {/* Grid */}

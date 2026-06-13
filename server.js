@@ -104,8 +104,6 @@ const apiScriptLimiter = rateLimit({
     
     bannedClients.set(ip, Date.now() + twelveHoursInMs);
 
-    console.log(`🚨 SCRIPT SPAM BLOCKED! IP: ${ip} spammed ${req.path}. Ban applied!`);
-
     res.status(429).json({
       message: "Too many requests from this network. Automated scripts are temporarily blocked for 12 hours.",
     });
@@ -118,9 +116,7 @@ app.use(apiScriptLimiter);
 const checkIPBan = (req, res, next) => {
   const { deviceId, ip } = getClientInfo(req);
 
-  console.log(
-    `📩 API Hit hui! Device: ${deviceId || "N/A"} | IP: ${ip} | Route: ${req.originalUrl}`
-  );
+
 
   const now = Date.now();
   if (deviceId && bannedClients.has(deviceId)) {
@@ -155,7 +151,7 @@ const checkIPBan = (req, res, next) => {
 
 const globalLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, 
-  max: 500,
+  max: 1000,
 
   standardHeaders: true,
   legacyHeaders: false,
@@ -180,10 +176,6 @@ const globalLimiter = rateLimit({
       bannedClients.set(deviceId, unbanTime);
     }
     bannedClients.set(ip, unbanTime);
-
-    console.log(
-      `🚨 SPAM ALERT! Device: ${deviceId || "N/A"} | IP: ${ip} blocked for spamming ${req.path}!`
-    );
 
     res.status(429).json({
       message:
@@ -235,5 +227,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

@@ -1399,7 +1399,10 @@ router.get(
 
 
 
-// router.get("/shownew", async (req, res) => {
+
+
+
+// router.get("/shownew", async (req, res) => { 
 //     try {
 //         const limit = parseInt(req.query.limit || "2", 10);
 //         const exclude = req.query.exclude?.split(",").filter(Boolean) || [];
@@ -1410,9 +1413,59 @@ router.get(
 //             return res.status(400).json({ message: "Missing userId" });
 //         }
 
-//         const matchStage = exclude.length
+//         let matchStage = exclude.length
 //             ? { _id: { $nin: exclude.map((id) => new mongoose.Types.ObjectId(id)) } }
 //             : {};
+
+//         // 🔥 ADDED: BLOCK FILTER & NOT INTERESTED LOGIC START 🔥
+//         if (mongoose.isValidObjectId(currentUserId)) {
+            
+//             // 1. Viewer ko fetch karo aur isDeleted bhi select karo
+//             const viewer = await User.findById(currentUserId).select("blockedUsers isDeleted").lean();
+            
+//             // ✨ NAYI LINE: Agar dekhne wala (viewer) khud deleted hai, toh seedha block karo ✨
+//             if (viewer && viewer.isDeleted) {
+//                 return res.status(403).json({ message: "Your account is deleted. Access denied." });
+//             }
+
+//             const blockedList = viewer?.blockedUsers || [];
+            
+//             // 2. Kisko viewer ne block kiya hai (Reverse lookup)
+//             const blockers = await User.find({ blockedUsers: currentUserId }).select("_id").lean();
+//             const usersWhoBlockedMe = blockers.map(b => b._id);
+            
+//             // 3. Deleted users ko find karna (Soft Delete Logic)
+//             const deletedUsers = await User.find({ isDeleted: true }).select("_id").lean();
+//             const deletedUserIds = deletedUsers.map(u => u._id);
+            
+//             // 4. Combined Exclude List (Blocked by me + Blocked me + Deleted Accounts)
+//             const allExcludedUsers = [...blockedList, ...usersWhoBlockedMe, ...deletedUserIds];
+
+//             if (allExcludedUsers.length > 0) {
+//                 matchStage.user = { $nin: allExcludedUsers }; // In logo ki reels feed mein mat dikhao
+//             }
+            
+//             // Feed mein admin wali blocked reels na aayein (safety check)
+//             matchStage.status = { $ne: "Blocked" };
+
+//             // 🔥 5. NOT INTERESTED LOGIC ADDED HERE
+//             const notInterestedInteractions = await ReelInteraction.find({
+//                 user: currentUserId,
+//                 action: "not_interested"
+//             }).select("reel").lean();
+
+//             if (notInterestedInteractions.length > 0) {
+//                 const notInterestedReelIds = notInterestedInteractions.map(interaction => interaction.reel);
+                
+//                 // Agar `exclude` ki wajah se pehle se `$nin` tha, toh usme append karo
+//                 if (matchStage._id && matchStage._id.$nin) {
+//                     matchStage._id.$nin.push(...notInterestedReelIds);
+//                 } else {
+//                     matchStage._id = { $nin: notInterestedReelIds };
+//                 }
+//             }
+//         }
+//         // 🔥 ADDED: BLOCK FILTER & NOT INTERESTED LOGIC END 🔥
 
 //         // 🎬 Sample random reels
 //         const reels = await Reel.aggregate([
@@ -1424,7 +1477,7 @@ router.get(
 //         const currentUser = await User.findById(currentUserId, "profilePicture").lean();
 //         const currentUserProfilePic = currentUser?.profilePicture || "";
 
-//         // 🔁 Add isFollowing + current user + reel owner profile picture
+//         // 🔁 Add isFollowing + current user + reel owner profile picture + seller_id
 //         const reelsWithFollow = await Promise.all(
 //             reels.map(async (reel) => {
 //                 const [isFollowing, reelOwner] = await Promise.all([
@@ -1432,16 +1485,23 @@ router.get(
 //                         _id: reel.user,
 //                         followers: new mongoose.Types.ObjectId(currentUserId),
 //                     }),
-//                     User.findById(reel.user, "profilePicture").lean(),
+//                     User.findById(
+//                         reel.user,
+//                         "profilePicture seller_id userseller_id"
+//                     ).lean(),
 //                 ]);
 
 //                 const reelUserProfilePic = reelOwner?.profilePicture || "";
 
 //                 return {
-//                     ...reel, // ✅ keep original reel fields
+//                     ...reel, // keep original reel fields
 //                     isFollowing: !!isFollowing,
-//                     currentUserProfilePic, // ✅ current user’s picture
-//                     reelUserProfilePic,    // ✅ reel owner's picture
+//                     currentUserProfilePic,
+//                     reelUserProfilePic,
+
+//                     // ✅ NEW FIELDS ADDED IN RESPONSE
+//                     seller_id: reel.seller_id || reelOwner?.seller_id || "",
+//                     userseller_id: reel.userseller_id || reelOwner?.userseller_id || "",
 //                 };
 //             })
 //         );
@@ -1449,19 +1509,11 @@ router.get(
 //         res.json({ reels: reelsWithFollow, direction });
 //     } catch (e) {
 //         console.error("Error fetching reels:", e);
-// e.statusCode = e.statusCode || 500;
-// await logError(req, e);
+//         e.statusCode = e.statusCode || 500;
+//         await logError(req, e);
 //         res.status(500).json({ message: "Error fetching reels" });
 //     }
 // });
-
-
-
-
-
-// ================= SHOWNNEW API (FEED) =================
-
-
 
 router.get("/shownew", async (req, res) => { 
     try {
@@ -1541,7 +1593,8 @@ router.get("/shownew", async (req, res) => {
         // 🔁 Add isFollowing + current user + reel owner profile picture + seller_id
         const reelsWithFollow = await Promise.all(
             reels.map(async (reel) => {
-                const [isFollowing, reelOwner] = await Promise.all([
+                // 🔥 NAYA FIX: Yahan humne Comment.countDocuments add kar diya
+                const [isFollowing, reelOwner, activeCommentsCount] = await Promise.all([
                     User.exists({
                         _id: reel.user,
                         followers: new mongoose.Types.ObjectId(currentUserId),
@@ -1550,6 +1603,11 @@ router.get("/shownew", async (req, res) => {
                         reel.user,
                         "profilePicture seller_id userseller_id"
                     ).lean(),
+                    // 👇 Sirf un comments ko count karega jo delete nahi hue hain
+                    Comment.countDocuments({ 
+                        reel: reel._id, 
+                        isDeleted: { $ne: true } 
+                    }) 
                 ]);
 
                 const reelUserProfilePic = reelOwner?.profilePicture || "";
@@ -1563,6 +1621,9 @@ router.get("/shownew", async (req, res) => {
                     // ✅ NEW FIELDS ADDED IN RESPONSE
                     seller_id: reel.seller_id || reelOwner?.seller_id || "",
                     userseller_id: reel.userseller_id || reelOwner?.userseller_id || "",
+                    
+                    // 🔥 YEH RAHA TUMHARA ACCURATE COMMENT COUNT FRONTEND KE LIYE
+                    totalCommentsCount: activeCommentsCount 
                 };
             })
         );
@@ -1575,7 +1636,6 @@ router.get("/shownew", async (req, res) => {
         res.status(500).json({ message: "Error fetching reels" });
     }
 });
-
 
 router.post("/view", async (req, res) => {
     try {

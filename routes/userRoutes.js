@@ -71,7 +71,7 @@ router.post("/", async (req, res) => {
       }
     }
 
-    // ==========================================
+// ==========================================
     // 2. EXISTING ACTIVE USER LOGIN
     // ==========================================
     if (existingUser) {
@@ -95,6 +95,10 @@ router.post("/", async (req, res) => {
       if (profilePicture) existingUser.profilePicture = profilePicture;
       if (bio) existingUser.bio = bio;
 
+      // 🔥 FIX: Yahan seller_id aur userseller_id update karna zaroori hai! 🔥
+      if (seller_id) existingUser.seller_id = seller_id;
+      if (userseller_id) existingUser.userseller_id = userseller_id;
+
       if (typeof isConnected !== "undefined") {
         existingUser.isConnected = isConnected;
         existingUser.lastConnectedAt = new Date();
@@ -114,6 +118,8 @@ router.post("/", async (req, res) => {
         bio: existingUser.bio,
         followers: existingUser.followers,
         following: existingUser.following,
+        seller_id: existingUser.seller_id,           // Response me wapas bhej do
+        userseller_id: existingUser.userseller_id    // Response me wapas bhej do
       });
     }
 
@@ -157,14 +163,15 @@ router.post("/", async (req, res) => {
 
     const savedUser = await newUser.save();
 
-    return res.status(201).json({
-      message: "User registered successfully",
-      _id: savedUser._id,
-      userid: savedUser.userid,
-      username: savedUser.username,
-      mobile: savedUser.mobile,
-      // ... baki cheezein
-    });
+  return res.status(201).json({
+  message: "User registered successfully",
+  _id: savedUser._id,
+  userid: savedUser.userid,
+  username: savedUser.username,
+  mobile: savedUser.mobile,
+  seller_id: savedUser.seller_id,
+  userseller_id: savedUser.userseller_id,
+});
 
   } catch (error) {
     console.error("Error processing user:", error);
@@ -2127,12 +2134,11 @@ router.put("/action/disconnect-seller", async (req, res) => {
       return res.status(400).json({ message: "Seller ID is required" });
     }
 
-    // 🔍 Find by seller_id and Clear all fields
     const updatedUser = await User.findOneAndUpdate(
       { seller_id: seller_id },
       {
         $set: {
-          seller_id: "", // ✅ Ab ye bhi empty ho jayega
+          seller_id: "", 
           userseller_id: "",
           isConnected: false,
         },

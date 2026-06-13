@@ -54,6 +54,7 @@ const UserActivityDetails = () => {
     { value: "moderation", label: "Safety & Moderation" },
   ];
 
+  
   useEffect(() => {
     if (userId) {
       fetchActivityData();

@@ -266,7 +266,6 @@ const UserLikedReels = () => {
       <h3 className="text-xl font-bold text-gray-800 mb-2">
         No Liked Reels Found
       </h3>
-
       <p className="text-gray-500 text-center max-w-sm">
         This user has not liked any reels yet.
       </p>
