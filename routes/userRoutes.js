@@ -19,7 +19,6 @@ const axios = require("axios");
 const mongoose = require("mongoose");
 const ReelInteraction = require("../models/ReelInteraction");
 
-
 router.post("/", async (req, res) => {
   try {
     let {
@@ -48,14 +47,15 @@ router.post("/", async (req, res) => {
     // ==========================================
     if (existingUser && existingUser.isDeleted) {
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-      const timePassed = Date.now() - new Date(existingUser.deletedAt).getTime();
+      const timePassed =
+        Date.now() - new Date(existingUser.deletedAt).getTime();
 
       if (timePassed <= thirtyDays) {
         // Yahan Frontend ko pata chal jayega ki account recover karna hai
         return res.status(403).json({
           message: "Your account is deactivated. Do you want to reactivate it?",
           needsReactivation: true,
-          mobile: existingUser.mobile
+          mobile: existingUser.mobile,
         });
       } else {
         // 30 Din ke baad aaya hai - Archive kar do taaki naya ban sake
@@ -66,12 +66,12 @@ router.post("/", async (req, res) => {
           existingUser.email = `${existingUser.email}_hidden_${timestamp}`;
         }
         existingUser.isPermanentlyHidden = true;
-        await existingUser.save(); 
-        existingUser = null; 
+        await existingUser.save();
+        existingUser = null;
       }
     }
 
-// ==========================================
+    // ==========================================
     // 2. EXISTING ACTIVE USER LOGIN
     // ==========================================
     if (existingUser) {
@@ -82,11 +82,21 @@ router.post("/", async (req, res) => {
         // ✨ UPDATED: Regex check to block symbols & spaces but ALLOW underscores
         const usernameRegex = /^[a-z0-9_]+$/;
         if (!usernameRegex.test(formattedUsername)) {
-          return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
+          return res
+            .status(400)
+            .json({
+              message:
+                "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed.",
+            });
         }
 
-        const usernameTaken = await User.findOne({ username: formattedUsername });
-        if (usernameTaken) return res.status(400).json({ message: "This username is already taken" });
+        const usernameTaken = await User.findOne({
+          username: formattedUsername,
+        });
+        if (usernameTaken)
+          return res
+            .status(400)
+            .json({ message: "This username is already taken" });
         existingUser.username = formattedUsername;
       }
 
@@ -118,8 +128,8 @@ router.post("/", async (req, res) => {
         bio: existingUser.bio,
         followers: existingUser.followers,
         following: existingUser.following,
-        seller_id: existingUser.seller_id,           // Response me wapas bhej do
-        userseller_id: existingUser.userseller_id    // Response me wapas bhej do
+        seller_id: existingUser.seller_id, // Response me wapas bhej do
+        userseller_id: existingUser.userseller_id, // Response me wapas bhej do
       });
     }
 
@@ -128,18 +138,27 @@ router.post("/", async (req, res) => {
     // ==========================================
     // Agar existingUser nahi hai, TABHI hum username demand karenge!
     if (!username) {
-      return res.status(400).json({ message: "Username is required to create a new account" });
+      return res
+        .status(400)
+        .json({ message: "Username is required to create a new account" });
     }
 
     username = username.toLowerCase().trim();
     if (username.length < 3 || username.length > 20) {
-      return res.status(400).json({ message: "Username must be 3-20 characters" });
+      return res
+        .status(400)
+        .json({ message: "Username must be 3-20 characters" });
     }
 
     // ✨ UPDATED: Regex check to block symbols & spaces but ALLOW underscores for new accounts
     const usernameRegex = /^[a-z0-9_]+$/;
     if (!usernameRegex.test(username)) {
-      return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed.",
+        });
     }
 
     const existingUsername = await User.findOne({ username });
@@ -163,16 +182,15 @@ router.post("/", async (req, res) => {
 
     const savedUser = await newUser.save();
 
-  return res.status(201).json({
-  message: "User registered successfully",
-  _id: savedUser._id,
-  userid: savedUser.userid,
-  username: savedUser.username,
-  mobile: savedUser.mobile,
-  seller_id: savedUser.seller_id,
-  userseller_id: savedUser.userseller_id,
-});
-
+    return res.status(201).json({
+      message: "User registered successfully",
+      _id: savedUser._id,
+      userid: savedUser.userid,
+      username: savedUser.username,
+      mobile: savedUser.mobile,
+      seller_id: savedUser.seller_id,
+      userseller_id: savedUser.userseller_id,
+    });
   } catch (error) {
     console.error("Error processing user:", error);
     if (error.code === 11000) {
@@ -182,7 +200,6 @@ router.post("/", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
-
 
 router.get("/", async (req, res) => {
   try {
@@ -279,7 +296,7 @@ router.get(
       if (status === "deleted") {
         query.isDeleted = true;
       } else {
-        query.isDeleted = { $ne: true }; 
+        query.isDeleted = { $ne: true };
       }
 
       // ✅ 2. Search Filter
@@ -536,16 +553,10 @@ router.get("/search_populer", async (req, res) => {
           },
         });
       }
-
       videos = await Reel.find({
         $or: videoQuery,
-
         status: "Published",
-
-        // ✅ Hide blocked users reels both side
         user: { $nin: blockedList },
-
-        // ✅ Hide not interested reels
         _id: { $nin: notInterestedReelsList },
       })
         .select(
@@ -555,10 +566,8 @@ router.get("/search_populer", async (req, res) => {
         .sort({ views: -1, createdAt: -1 })
         .skip(videoSkip)
         .limit(videoLimit);
-
       hasMoreVideos = videos.length === videoLimit;
     }
-
     return res.status(200).json({
       users,
       videos,
@@ -624,6 +633,9 @@ router.get("/:id", async (req, res) => {
       email: user.email,
       profilePicture: user.profilePicture,
       bio: user.bio,
+      isConnected: user.isConnected, // ✅ ADD
+      seller_id: user.seller_id, // ✅ ADD
+      userseller_id: user.userseller_id, // ✅ ADD
       followers: user.followers,
       following: user.following,
       isSuspended: user.isSuspended,
@@ -744,10 +756,10 @@ router.get("/admin_userpost/:id", adminAuth, async (req, res) => {
   try {
     const userId = req.params.id;
 
-    let limit = parseInt(req.query.limit) || 12; 
-    let skip = parseInt(req.query.skip) || 0; 
+    let limit = parseInt(req.query.limit) || 12;
+    let skip = parseInt(req.query.skip) || 0;
 
-    if (limit < 1 || limit > 50) limit = 10; 
+    if (limit < 1 || limit > 50) limit = 10;
     if (skip < 0) skip = 0;
 
     const user = await User.findById(userId).select("-passwordHash");
@@ -787,19 +799,19 @@ router.get("/:userid/followers", adminAuth, async (req, res) => {
     const user = await User.findOne({ userid }).populate({
       path: "followers",
       select: "userid username name profilePicture",
-      match: { isDeleted: { $ne: true } } // 🔥 FILTER: Jo user delete nahi hue, sirf unko lao
+      match: { isDeleted: { $ne: true } }, // 🔥 FILTER: Jo user delete nahi hue, sirf unko lao
     });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Kyunki populate filter laga ke data la rha hai, 
+    // Kyunki populate filter laga ke data la rha hai,
     // to followers array me ab sirf ACTIVE users hi bachenge
     // jisse length (total count) apne aap theek ho jayegi.
     return res.json({
       success: true,
-      total: user.followers.length, 
+      total: user.followers.length,
       followers: user.followers,
     });
   } catch (error) {
@@ -818,7 +830,7 @@ router.get("/admin/users/:userid/following", adminAuth, async (req, res) => {
     const user = await User.findOne({ userid }).populate({
       path: "following",
       select: "userid username name profilePicture",
-      match: { isDeleted: { $ne: true } } // 🔥 FILTER: Sirf active users dikhao
+      match: { isDeleted: { $ne: true } }, // 🔥 FILTER: Sirf active users dikhao
     });
 
     if (!user) {
@@ -952,12 +964,12 @@ router.get("/userfollowing/:id", async (req, res) => {
       .populate({
         path: "followers",
         select: "userid username name profilePicture",
-        match: { isDeleted: { $ne: true } } // 🔥 FILTER: Sirf active followers dikhao
+        match: { isDeleted: { $ne: true } }, // 🔥 FILTER: Sirf active followers dikhao
       })
       .populate({
         path: "following",
         select: "userid username name profilePicture",
-        match: { isDeleted: { $ne: true } } // 🔥 FILTER: Sirf active following dikhao
+        match: { isDeleted: { $ne: true } }, // 🔥 FILTER: Sirf active following dikhao
       });
 
     // 🛡️ EXISTING FILTER (Blocked users ko hide karne ke liye)
@@ -1065,14 +1077,14 @@ router.delete("/:id", async (req, res) => {
         {
           $pull: { viewsdata: userId },
           $inc: { views: -1 },
-        }
+        },
       ),
 
       // ✅ 3. COMMENTS SOFT DELETE (Taaki account recover ho toh comments wapas aa jayein)
       Comment.updateMany(
         { user: userId },
-        { isDeleted: true, deletedAt: new Date() }
-      )
+        { isDeleted: true, deletedAt: new Date() },
+      ),
     ]);
 
     try {
@@ -1140,7 +1152,6 @@ router.delete(
 
       // 4. Update Other Data (Ab Shares, Followers, Following Hard Delete Nahi Honge)
       await Promise.all([
-        
         // ✅ 1. Comments ko Soft Delete karo (Thappa lagao)
         Comment.updateMany(
           { user: userId },
@@ -1384,7 +1395,7 @@ router.put("/:id", async (req, res) => {
     currentPassword,
     newPassword,
     isSuspended,
-    suspendReason // ✨ ADDED: Ye nikalna zaroori tha warna error aata
+    suspendReason, // ✨ ADDED: Ye nikalna zaroori tha warna error aata
   } = req.body;
 
   try {
@@ -1404,24 +1415,37 @@ router.put("/:id", async (req, res) => {
     }
 
     // ✨ ADDED: Username ko lower case aur trim karne ka logic
-    const formattedUsername = username ? username.toLowerCase().trim() : undefined;
+    const formattedUsername = username
+      ? username.toLowerCase().trim()
+      : undefined;
 
     // 🔹 Check karo kya Name ya Username change ho raha hai
     const isNameChanged =
-      (name && name !== user.name) || (formattedUsername && formattedUsername !== user.username);
+      (name && name !== user.name) ||
+      (formattedUsername && formattedUsername !== user.username);
 
     // Fields update
     // ✨ ADDED: Username validation logic (Strict rules and Uniqueness check)
     if (formattedUsername && formattedUsername !== user.username) {
       const usernameRegex = /^[a-z0-9_]+$/;
       if (!usernameRegex.test(formattedUsername)) {
-        return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
+        return res
+          .status(400)
+          .json({
+            message:
+              "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed.",
+          });
       }
 
       // Check agar ye naya username kisi aur ka toh nahi
       const usernameTaken = await User.findOne({ username: formattedUsername });
-      if (usernameTaken && usernameTaken._id.toString() !== user._id.toString()) {
-        return res.status(400).json({ message: "This username is already taken" });
+      if (
+        usernameTaken &&
+        usernameTaken._id.toString() !== user._id.toString()
+      ) {
+        return res
+          .status(400)
+          .json({ message: "This username is already taken" });
       }
 
       user.username = formattedUsername;
@@ -1430,7 +1454,7 @@ router.put("/:id", async (req, res) => {
     if (name) user.name = name;
     if (profilePicture) user.profilePicture = profilePicture;
     if (bio) user.bio = bio;
-    
+
     if (typeof isSuspended === "boolean") {
       user.isSuspended = isSuspended;
 
@@ -1577,13 +1601,25 @@ router.put(
 
         const usernameRegex = /^[a-z0-9_]+$/;
         if (!usernameRegex.test(formattedUsername)) {
-          return res.status(400).json({ message: "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed." });
+          return res
+            .status(400)
+            .json({
+              message:
+                "Username can only contain letters, numbers, and underscores. Spaces or other symbols are not allowed.",
+            });
         }
 
         // Check agar ye naya username kisi aur ka toh nahi
-        const usernameTaken = await User.findOne({ username: formattedUsername });
-        if (usernameTaken && usernameTaken._id.toString() !== user._id.toString()) {
-          return res.status(400).json({ message: "This username is already taken" });
+        const usernameTaken = await User.findOne({
+          username: formattedUsername,
+        });
+        if (
+          usernameTaken &&
+          usernameTaken._id.toString() !== user._id.toString()
+        ) {
+          return res
+            .status(400)
+            .json({ message: "This username is already taken" });
         }
 
         user.username = formattedUsername;
@@ -1593,7 +1629,7 @@ router.put(
       if (name) user.name = name;
       if (profilePicture) user.profilePicture = profilePicture;
       if (bio) user.bio = bio;
-      
+
       if (typeof isSuspended === "boolean") {
         user.isSuspended = isSuspended;
 
@@ -2138,7 +2174,7 @@ router.put("/action/disconnect-seller", async (req, res) => {
       { seller_id: seller_id },
       {
         $set: {
-          seller_id: "", 
+          seller_id: "",
           userseller_id: "",
           isConnected: false,
         },
@@ -2162,8 +2198,6 @@ router.put("/action/disconnect-seller", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
-
 
 router.post("/reactivate", async (req, res) => {
   try {
@@ -2189,8 +2223,9 @@ router.post("/reactivate", async (req, res) => {
 
     // Check if 30 days limit is crossed
     if (timePassed > thirtyDays) {
-      return res.status(400).json({ 
-        message: "Reactivation period has expired. Please log in normally to create a fresh account." 
+      return res.status(400).json({
+        message:
+          "Reactivation period has expired. Please log in normally to create a fresh account.",
       });
     }
 
@@ -2202,7 +2237,7 @@ router.post("/reactivate", async (req, res) => {
     // ✨ 2. RESTORE COMMENTS
     await Comment.updateMany(
       { user: existingUser._id },
-      { $set: { isDeleted: false, deletedAt: null } }
+      { $set: { isDeleted: false, deletedAt: null } },
     );
 
     // ✨ 3. RETURN FULL USER DATA (Taaki frontend direct login karwa de)
@@ -2224,7 +2259,6 @@ router.post("/reactivate", async (req, res) => {
       isSuspended: existingUser.isSuspended,
       createdAt: existingUser.createdAt,
     });
-
   } catch (error) {
     console.error("Error reactivating user:", error);
     return res.status(500).json({ message: "Server error" });
