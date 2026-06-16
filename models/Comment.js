@@ -25,5 +25,6 @@ const commentSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+commentSchema.index({ reel: 1, isDeleted: 1 });
 
 module.exports = mongoose.model("Comment", commentSchema);

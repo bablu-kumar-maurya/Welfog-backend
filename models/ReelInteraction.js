@@ -24,4 +24,7 @@ const reelInteractionSchema = new mongoose.Schema(
 // 🔥 COMPOUND INDEX: Ek user ek reel par sirf ek hi action rakh sakta hai
 reelInteractionSchema.index({ user: 1, reel: 1 }, { unique: true });
 
+// 🔥 NAYA ADDITION: Not interested reels ko fast nikalne ke liye index
+reelInteractionSchema.index({ user: 1, action: 1 });
+
 module.exports = mongoose.model("ReelInteraction", reelInteractionSchema);
