@@ -220,8 +220,7 @@ app.use("/api/userblocks", userblockRoute);
 
 app.get("/", (req, res) => {
   res.json({
-     "version": "1.0.16",
-    message: "Welcome to Neo Reels Backend API!",
+     "version": "1.0.18",
     status: "Server is running successfully! "
   });
 });
